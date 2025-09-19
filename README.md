@@ -1,159 +1,115 @@
-# Entschuldigungsformular Discord Bot
+# 🎓 Entschuldigungsformular Discord Bot
 
-Ein Discord Bot, der automatisch Entschuldigungsformulare für die Schule ausfüllt.
+Ein intelligenter Discord Bot, der automatisch Entschuldigungsformulare für die Schule ausfüllt und als PDF exportiert.
 
-## Features
+## ✨ Features
 
-- **?start** - Interaktives Menü zum Ausfüllen des Formulars
-  - Name, Nachname, Grund eingeben
-  - Datum/Zeit Picker für Fehlzeiten
-  - Automatische Duplizierung der Tabelle basierend auf Fehlzeiten
-  - Automatisches Einfügen von Ort (Bergisch Gladbach) und aktuellem Datum
+- **Slash Commands** für einfache Bedienung
+- **Interaktive Menüs** für Datum/Zeit Auswahl
+- **Stundenplan Import** via Excel/CSV Upload
+- **Automatische Formular-Erstellung** mit korrekten Daten
+- **PDF Export** mit professionellem Format
+- **Railway Deployment** mit PostgreSQL Datenbank
+- **Intelligente PDF-Konvertierung** (LibreOffice lokal, WeasyPrint auf Railway)
 
-- **?import** - Stundenplan hochladen
-  - CSV/Excel Format für Stundenplan
-  - Automatisches Einfügen der Stunden in das Formular
-  - Maximal 8 Zeilen, 2 Spalten (Stunde, Anzahl)
+## 🚀 Railway Deployment
 
-- **?help** - Hilfe und Format-Anweisungen
+### Automatisches Deployment
 
-## Technologie Stack
+1. **Repository zu Railway verbinden:**
+   - Gehe zu https://railway.app
+   - Erstelle ein neues Projekt
+   - Verbinde dein GitHub Repository
 
-- **Backend**: Python mit discord.py
-- **Datenbank**: SQLite (für Railway Deployment)
-- **Formular**: python-docx für Word-Dokumente
-- **Deployment**: Railway
-- **Commands**: Slash Commands
+2. **PostgreSQL Datenbank hinzufügen:**
+   - Füge eine PostgreSQL Datenbank zu deinem Projekt hinzu
+   - Railway setzt automatisch die `DATABASE_URL` Umgebungsvariable
 
-## Projektstruktur
+3. **Umgebungsvariablen setzen:**
+   - `DISCORD_TOKEN`: Dein Discord Bot Token
+   - `DISCORD_GUILD_ID`: Deine Discord Server ID
+   - `DEBUG`: `false` für Production
+   - `LOG_LEVEL`: `INFO` für Production
+
+4. **Deployment:**
+   - Railway erkennt automatisch die `Procfile`
+   - Der Bot startet automatisch nach dem Push
+
+### Manuelles Deployment
+
+```bash
+# Railway CLI installieren
+npm install -g @railway/cli
+
+# Login
+railway login
+
+# Projekt initialisieren
+railway init
+
+# Umgebungsvariablen setzen
+railway variables set DISCORD_TOKEN=your_token
+railway variables set DISCORD_GUILD_ID=your_guild_id
+
+# Deployen
+railway up
+```
+
+## 📋 Verwendung
+
+### Slash Commands
+
+- `/start` - Erstellt ein neues Entschuldigungsformular
+- `/import` - Importiert deinen Stundenplan
+- `/help` - Zeigt Hilfe und Anweisungen
+
+### Stundenplan Format
+
+Für `/import` verwende folgendes Format:
+```
+Montag    Dienstag  Mittwoch  Donnerstag  Freitag
+1./2.     1./2.     1./2.     1./2.      1./2.
+3./4.     3./4.     3./4.     3./4.      3./4.
+5./6.     5./6.     5./6.     5./6.      5./6.
+7./8.     7./8.     7./8.     7./8.      7./8.
+```
+
+## 🏗️ Projektstruktur
 
 ```
 entschuldigungformular-bot/
 ├── bot/
-│   ├── __init__.py
-│   ├── main.py              # Bot Hauptdatei
-│   ├── commands/            # Slash Commands
-│   │   ├── __init__.py
-│   │   ├── start.py         # ?start command
-│   │   ├── import.py        # ?import command
-│   │   └── help.py          # ?help command
-│   ├── database/            # Datenbank Module
-│   │   ├── __init__.py
-│   │   ├── models.py        # SQLAlchemy Models
-│   │   └── database.py      # DB Connection
-│   ├── form/                # Formular Module
-│   │   ├── __init__.py
-│   │   ├── template.py      # Formular Template
-│   │   └── filler.py        # Formular ausfüllen
-│   └── utils/               # Utilities
-│       ├── __init__.py
-│       └── validators.py    # Input Validierung
-├── templates/               # Formular Templates
-│   └── entschuldigung.docx
-├── formular_examples/       # Beispiel Formulare
+│   ├── commands/           # Slash Commands
+│   │   ├── start.py       # /start Command
+│   │   ├── import_cmd.py  # /import Command
+│   │   └── help.py        # /help Command
+│   ├── database/          # Datenbank Management
+│   │   ├── models.py      # SQLAlchemy Models
+│   │   └── database.py    # Database Manager
+│   ├── form/              # Formular Logic
+│   │   ├── real_template.py # Template Generator
+│   │   └── filler.py      # Form Filler
+│   ├── utils/             # Utilities
+│   │   ├── pdf_converter.py # PDF Konvertierung
+│   │   ├── health.py      # Health Check
+│   │   └── validators.py  # Input Validierung
+│   └── main.py            # Bot Hauptdatei
 ├── requirements.txt
 ├── .env.example
 ├── railway.json
+├── Procfile
 └── README.md
 ```
 
-## Installation
+## 🔧 Technische Details
 
-### Lokale Entwicklung
+- **Discord.py** für Bot-Funktionalität
+- **SQLAlchemy** für Datenbank-Management
+- **python-docx** für Word-Dokumente
+- **WeasyPrint/LibreOffice** für PDF-Konvertierung
+- **PostgreSQL** auf Railway, SQLite lokal
+- **Railway** für Deployment
 
-1. **Python 3.9+ installieren**
-   ```bash
-   python --version  # Sollte 3.9+ sein
-   ```
+## 📝 Lizenz
 
-2. **Repository klonen**
-   ```bash
-   git clone <repository-url>
-   cd entschuldigungformular-bot
-   ```
-
-3. **Dependencies installieren**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Umgebungsvariablen konfigurieren**
-   ```bash
-   cp env.example .env
-   # Bearbeite .env und füge deinen Discord Bot Token hinzu
-   ```
-
-5. **Discord Bot erstellen**
-   - Gehe zu https://discord.com/developers/applications
-   - Erstelle eine neue Application
-   - Gehe zu "Bot" und erstelle einen Bot
-   - Kopiere den Token in deine `.env` Datei
-   - Aktiviere "Message Content Intent" in den Bot-Einstellungen
-
-6. **Bot starten**
-   ```bash
-   python run.py
-   # oder
-   python -m bot.main
-   ```
-
-### Railway Deployment
-
-1. **Railway CLI installieren**
-   ```bash
-   npm install -g @railway/cli
-   ```
-
-2. **Bei Railway anmelden**
-   ```bash
-   railway login
-   ```
-
-3. **Projekt erstellen**
-   ```bash
-   railway init
-   ```
-
-4. **Environment Variables setzen**
-   ```bash
-   railway variables set DISCORD_TOKEN=your_bot_token_here
-   railway variables set DISCORD_GUILD_ID=your_guild_id_here
-   ```
-
-5. **Deployen**
-   ```bash
-   ./deploy.sh
-   # oder manuell:
-   railway up
-   ```
-
-## Verwendung
-
-### Slash Commands
-
-- `/start` - Erstelle ein neues Entschuldigungsformular
-- `/import` - Lade deinen Stundenplan hoch
-- `/help` - Zeige Hilfe und Anweisungen
-
-### Stundenplan Format
-
-Für `/import` verwende eine CSV oder Excel Datei mit:
-- Maximal 8 Zeilen
-- 2 Spalten: Stunde | Fach
-- Beispiel:
-  ```
-  1. Stunde,Mathematik
-  2. Stunde,Deutsch
-  3. Stunde,Englisch
-  ```
-
-## Features
-
-- ✅ **Interaktive Formular-Erstellung** mit Slash Commands
-- ✅ **Automatische Datum/Zeit Auswahl** mit Buttons
-- ✅ **Stundenplan Import** via CSV/Excel Upload
-- ✅ **Automatische Formular-Ausfüllung** mit python-docx
-- ✅ **SQLite Datenbank** für Benutzerdaten
-- ✅ **Railway Deployment** bereit
-- ✅ **Health Check Endpoint** für Monitoring
-- ✅ **Error Handling** und Logging
+MIT License - Siehe LICENSE Datei für Details.
