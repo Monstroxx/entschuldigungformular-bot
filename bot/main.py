@@ -10,6 +10,7 @@ import asyncio
 from .database import DatabaseManager
 from .form import FormFiller
 from .commands import StartCommand, ImportCommand, HelpCommand
+from .utils import HealthCheck
 
 # Logging konfigurieren
 logging.basicConfig(
@@ -41,6 +42,7 @@ class EntschuldigungsformularBot(commands.Bot):
         # Initialisiere Komponenten
         self.db_manager = DatabaseManager()
         self.form_filler = FormFiller(self.db_manager)
+        self.health_check = HealthCheck(self)
         
         # Bot-Informationen
         self.start_time = datetime.now()
@@ -83,6 +85,10 @@ class EntschuldigungsformularBot(commands.Bot):
                 name="?help für Hilfe"
             )
         )
+        
+        # Starte Health Check Server für Railway
+        port = int(os.getenv("PORT", 8000))
+        await self.health_check.start_server(port)
     
     async def on_command_error(self, ctx, error):
         """Error Handler für Commands."""

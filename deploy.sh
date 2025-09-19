@@ -31,3 +31,13 @@ railway up
 
 echo "✅ Deployment abgeschlossen!"
 echo "🔗 Überprüfe deine Railway Dashboard für den Status"
+echo ""
+echo "📋 WICHTIGE RAILWAY KONFIGURATION:"
+echo "1. Füge PostgreSQL Database hinzu:"
+echo "   railway add postgresql"
+echo ""
+echo "2. Setze Environment Variables:"
+echo "   railway variables set DISCORD_TOKEN=your_bot_token"
+echo "   railway variables set DISCORD_GUILD_ID=your_guild_id"
+echo ""
+echo "3. Die DATABASE_URL wird automatisch von Railway gesetzt"

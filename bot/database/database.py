@@ -18,9 +18,28 @@ class DatabaseManager:
     def __init__(self, database_url: Optional[str] = None):
         """Initialisiert den DatabaseManager."""
         if database_url is None:
-            database_url = os.getenv("DATABASE_URL", "sqlite:///bot.db")
+            # Railway-spezifische Datenbank-URL
+            railway_db_url = os.getenv("DATABASE_URL")
+            if railway_db_url:
+                # Railway PostgreSQL
+                database_url = railway_db_url
+            else:
+                # Lokale SQLite
+                database_url = "sqlite:///bot.db"
         
-        self.engine = create_engine(database_url, echo=False)
+        # Konfiguriere Engine für Railway
+        engine_kwargs = {"echo": False}
+        
+        # PostgreSQL-spezifische Konfiguration für Railway
+        if "postgresql" in database_url:
+            engine_kwargs.update({
+                "pool_size": 5,
+                "max_overflow": 10,
+                "pool_pre_ping": True,
+                "pool_recycle": 300
+            })
+        
+        self.engine = create_engine(database_url, **engine_kwargs)
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
         
         # Erstelle Tabellen

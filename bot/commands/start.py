@@ -9,6 +9,7 @@ import logging
 
 from ..database import DatabaseManager
 from ..form import FormFiller
+from ..utils import PDFConverter
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,7 @@ class ExcuseFormModal(ui.Modal, title="Entschuldigungsformular erstellen"):
         super().__init__()
         self.db_manager = db_manager
         self.form_filler = form_filler
+        self.pdf_converter = PDFConverter()
     
     first_name = ui.TextInput(
         label="Vorname",
@@ -140,12 +142,21 @@ class DateTimeSelectionView(ui.View):
             )
             
             if file_path:
-                # Sende Formular als Datei
-                file = discord.File(file_path, filename="Entschuldigungsformular.docx")
+                # Konvertiere zu PDF
+                pdf_path = self.pdf_converter.convert_docx_to_pdf(file_path)
+                
+                if pdf_path:
+                    # Sende PDF als Datei
+                    file = discord.File(pdf_path, filename="Entschuldigungsformular.pdf")
+                    file_type = "PDF"
+                else:
+                    # Fallback: Sende DOCX
+                    file = discord.File(file_path, filename="Entschuldigungsformular.docx")
+                    file_type = "DOCX"
                 
                 embed = discord.Embed(
                     title="✅ Formular erfolgreich erstellt!",
-                    description="Dein Entschuldigungsformular wurde generiert und ist bereit zum Download.",
+                    description=f"Dein Entschuldigungsformular wurde als {file_type} generiert und ist bereit zum Download.",
                     color=0x00ff00
                 )
                 
@@ -153,11 +164,17 @@ class DateTimeSelectionView(ui.View):
                     name="Details",
                     value=f"**Name:** {self.first_name} {self.last_name}\n"
                           f"**Grund:** {self.reason}\n"
-                          f"**Fehlzeiten:** {len(self.absence_periods)}",
+                          f"**Fehlzeiten:** {len(self.absence_periods)}\n"
+                          f"**Format:** {file_type}",
                     inline=False
                 )
                 
                 await interaction.followup.send(embed=embed, file=file, ephemeral=True)
+                
+                # Lösche temporäre Dateien
+                self.pdf_converter.cleanup_temp_files(file_path)
+                if pdf_path and pdf_path != file_path:
+                    self.pdf_converter.cleanup_temp_files(pdf_path)
             else:
                 await interaction.followup.send(
                     "❌ Fehler beim Erstellen des Formulars. Bitte versuche es erneut.",
