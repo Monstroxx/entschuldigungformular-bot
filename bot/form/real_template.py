@@ -17,11 +17,20 @@ class RealFormTemplate:
     def __init__(self, template_path: str = None):
         """Initialisiert das Template."""
         if template_path is None:
+            # Prüfe zuerst das templates Verzeichnis
             template_path = os.path.join(
                 os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-                "formular_examples",
-                "2025-Entschuldigungsformular.docx"
+                "templates",
+                "entschuldigung_template.docx"
             )
+            
+            # Fallback auf formular_examples (für lokale Entwicklung)
+            if not os.path.exists(template_path):
+                template_path = os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                    "formular_examples",
+                    "2025-Entschuldigungsformular.docx"
+                )
         
         self.template_path = template_path
         self.template_exists = os.path.exists(template_path)

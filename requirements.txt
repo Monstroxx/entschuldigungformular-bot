@@ -11,3 +11,4 @@ reportlab>=4.0.0
 docx2pdf>=0.1.8
 weasyprint>=60.0
 pypandoc>=1.11
+docx2txt>=0.8
