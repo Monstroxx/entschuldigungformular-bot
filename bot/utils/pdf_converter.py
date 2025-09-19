@@ -19,10 +19,10 @@ class PDFConverter:
         is_railway = os.getenv("RAILWAY_ENVIRONMENT") is not None
         
         if is_railway:
-            # Auf Railway: WeasyPrint zuerst (kein LibreOffice)
+            # Auf Railway: Pandoc zuerst (funktioniert besser), dann WeasyPrint
             self.conversion_methods = [
-                self._convert_with_weasyprint,
                 self._convert_with_pandoc,
+                self._convert_with_weasyprint,
                 self._convert_with_docx2pdf
             ]
         else:
@@ -223,15 +223,45 @@ class PDFConverter:
             subprocess.run(['pandoc', '--version'], 
                          capture_output=True, check=True)
             
-            # Konvertiere zu PDF
-            cmd = ['pandoc', docx_path, '-o', pdf_path]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            # Versuche verschiedene PDF-Engines
+            engines = ['weasyprint', 'wkhtmltopdf', 'prince']
             
-            if result.returncode == 0 and os.path.exists(pdf_path):
-                return True
-            else:
-                logger.warning(f"Pandoc Konvertierung fehlgeschlagen: {result.stderr}")
-                return False
+            for engine in engines:
+                try:
+                    cmd = ['pandoc', docx_path, '-o', pdf_path, f'--pdf-engine={engine}']
+                    result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+                    
+                    if result.returncode == 0 and os.path.exists(pdf_path) and os.path.getsize(pdf_path) > 0:
+                        logger.info(f"PDF erfolgreich mit Pandoc ({engine}) erstellt: {pdf_path}")
+                        return True
+                    else:
+                        logger.warning(f"Pandoc mit {engine} fehlgeschlagen: {result.stderr}")
+                except Exception as e:
+                    logger.warning(f"Pandoc mit {engine} fehlgeschlagen: {e}")
+                    continue
+            
+            # Fallback: Konvertiere über HTML
+            try:
+                html_path = docx_path.replace('.docx', '.html')
+                cmd = ['pandoc', docx_path, '-o', html_path]
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+                
+                if result.returncode == 0:
+                    cmd = ['pandoc', html_path, '-o', pdf_path, '--pdf-engine=weasyprint']
+                    result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+                    
+                    # Lösche HTML-Datei
+                    if os.path.exists(html_path):
+                        os.remove(html_path)
+                    
+                    if result.returncode == 0 and os.path.exists(pdf_path) and os.path.getsize(pdf_path) > 0:
+                        logger.info(f"PDF erfolgreich mit Pandoc (HTML-Fallback) erstellt: {pdf_path}")
+                        return True
+                        
+            except Exception as e:
+                logger.warning(f"Pandoc HTML-Fallback fehlgeschlagen: {e}")
+            
+            return False
                 
         except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
             return False

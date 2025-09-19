@@ -17,23 +17,54 @@ class RealFormTemplate:
     def __init__(self, template_path: str = None):
         """Initialisiert das Template."""
         if template_path is None:
-            # Prüfe zuerst das templates Verzeichnis
-            template_path = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-                "templates",
-                "entschuldigung_template.docx"
-            )
-            
-            # Fallback auf formular_examples (für lokale Entwicklung)
-            if not os.path.exists(template_path):
-                template_path = os.path.join(
+            # Prüfe verschiedene mögliche Pfade
+            possible_paths = [
+                # Railway/Production Pfade
+                os.path.join("/app", "templates", "2025-Entschuldigungsformular.docx"),
+                os.path.join("/app", "templates", "entschuldigung_template.docx"),
+                # Lokale Entwicklung Pfade
+                os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                    "templates",
+                    "2025-Entschuldigungsformular.docx"
+                ),
+                os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                    "templates",
+                    "entschuldigung_template.docx"
+                ),
+                os.path.join(
                     os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
                     "formular_examples",
                     "2025-Entschuldigungsformular.docx"
                 )
+            ]
+            
+            # Finde den ersten existierenden Pfad
+            template_path = None
+            for path in possible_paths:
+                if os.path.exists(path):
+                    template_path = path
+                    break
+            
+            # Fallback auf None, wenn nichts gefunden wird
+            if template_path is None:
+                template_path = possible_paths[0]  # Verwende den ersten Pfad als Standard
         
         self.template_path = template_path
         self.template_exists = os.path.exists(template_path)
+        
+        # Debug-Logging
+        logger.info(f"Template-Pfad: {template_path}")
+        logger.info(f"Template existiert: {self.template_exists}")
+        if not self.template_exists:
+            logger.warning(f"Template nicht gefunden unter: {template_path}")
+            # Liste verfügbare Verzeichnisse
+            base_dir = os.path.dirname(template_path)
+            if os.path.exists(base_dir):
+                logger.info(f"Verfügbare Dateien in {base_dir}: {os.listdir(base_dir)}")
+            else:
+                logger.warning(f"Verzeichnis existiert nicht: {base_dir}")
     
     def load_template(self) -> Document:
         """Lädt das echte Formular-Template."""
