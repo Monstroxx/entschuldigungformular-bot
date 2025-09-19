@@ -61,6 +61,17 @@ class EntschuldigungsformularBot(commands.Bot):
         except Exception as e:
             logger.error(f"Failed to sync commands: {e}")
     
+    async def on_guild_join(self, guild):
+        """Wird aufgerufen wenn der Bot einem Server beitritt."""
+        logger.info(f"Bot beigetreten zu Server: {guild.name} (ID: {guild.id})")
+        
+        # Sync Commands für neuen Server
+        try:
+            synced = await self.tree.sync(guild=guild)
+            logger.info(f"Synced {len(synced)} command(s) für Server {guild.name}")
+        except Exception as e:
+            logger.error(f"Failed to sync commands for guild {guild.name}: {e}")
+    
     async def load_commands(self):
         """Lädt alle Bot-Commands."""
         try:
@@ -79,16 +90,21 @@ class EntschuldigungsformularBot(commands.Bot):
         logger.info(f"Bot ist in {len(self.guilds)} Server(n) aktiv")
         
         # Setze Bot-Status
+        from discord import Activity, ActivityType
         await self.change_presence(
-            activity=discord.Activity(
-                type=discord.ActivityType.watching,
+            activity=Activity(
+                type=ActivityType.watching,
                 name="?help für Hilfe"
             )
         )
         
-        # Starte Health Check Server für Railway
+        # Starte Health Check Server für Railway (nicht-blockierend)
         port = int(os.getenv("PORT", 8000))
-        await self.health_check.start_server(port)
+        try:
+            await self.health_check.start_server(port)
+            logger.info(f"Health check server started on port {port}")
+        except Exception as e:
+            logger.warning(f"Failed to start health check server: {e}")
     
     async def on_command_error(self, ctx, error):
         """Error Handler für Commands."""
