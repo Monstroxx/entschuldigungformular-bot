@@ -4,7 +4,7 @@ import os
 import logging
 from datetime import datetime
 from discord.ext import commands
-from discord import Intents
+from discord import Intents, Activity, ActivityType
 import asyncio
 
 from .database import DatabaseManager
@@ -90,11 +90,10 @@ class EntschuldigungsformularBot(commands.Bot):
         logger.info(f"Bot ist in {len(self.guilds)} Server(n) aktiv")
         
         # Setze Bot-Status
-        from discord import Activity, ActivityType
         await self.change_presence(
             activity=Activity(
                 type=ActivityType.watching,
-                name="?help für Hilfe"
+                name="/help für Hilfe"
             )
         )
         
