@@ -3,6 +3,7 @@
 import os
 import subprocess
 import logging
+import tempfile
 from pathlib import Path
 from typing import Optional
 
@@ -14,11 +15,24 @@ class PDFConverter:
     
     def __init__(self):
         """Initialisiert den PDF Converter."""
-        self.conversion_methods = [
-            self._convert_with_libreoffice,
-            self._convert_with_docx2pdf,
-            self._convert_with_pandoc
-        ]
+        # Prüfe ob wir auf Railway sind (kein LibreOffice)
+        is_railway = os.getenv("RAILWAY_ENVIRONMENT") is not None
+        
+        if is_railway:
+            # Auf Railway: WeasyPrint zuerst (kein LibreOffice)
+            self.conversion_methods = [
+                self._convert_with_weasyprint,
+                self._convert_with_pandoc,
+                self._convert_with_docx2pdf
+            ]
+        else:
+            # Lokal: LibreOffice zuerst (beste Qualität)
+            self.conversion_methods = [
+                self._convert_with_libreoffice,
+                self._convert_with_pandoc,
+                self._convert_with_docx2pdf,
+                self._convert_with_weasyprint
+            ]
     
     def convert_docx_to_pdf(self, docx_path: str, output_dir: str = None) -> Optional[str]:
         """Konvertiert eine DOCX-Datei zu PDF."""
@@ -53,24 +67,35 @@ class PDFConverter:
             subprocess.run(['libreoffice', '--version'], 
                          capture_output=True, check=True)
             
+            # Erstelle temporäres Verzeichnis für LibreOffice
+            temp_dir = tempfile.mkdtemp()
+            
             # Konvertiere zu PDF
             cmd = [
                 'libreoffice',
                 '--headless',
                 '--convert-to', 'pdf',
-                '--outdir', os.path.dirname(pdf_path),
+                '--outdir', temp_dir,
                 docx_path
             ]
             
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
             
-            if result.returncode == 0 and os.path.exists(pdf_path):
-                return True
-            else:
-                logger.warning(f"LibreOffice Konvertierung fehlgeschlagen: {result.stderr}")
-                return False
+            if result.returncode == 0:
+                # Finde die erstellte PDF-Datei
+                temp_pdf = os.path.join(temp_dir, os.path.basename(pdf_path))
+                if os.path.exists(temp_pdf):
+                    # Verschiebe PDF an den gewünschten Ort
+                    import shutil
+                    shutil.move(temp_pdf, pdf_path)
+                    logger.info(f"PDF erfolgreich mit LibreOffice erstellt: {pdf_path}")
+                    return True
+            
+            logger.warning(f"LibreOffice Konvertierung fehlgeschlagen: {result.stderr}")
+            return False
                 
-        except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+        except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired) as e:
+            logger.warning(f"LibreOffice nicht verfügbar: {e}")
             return False
     
     def _convert_with_docx2pdf(self, docx_path: str, pdf_path: str) -> bool:
@@ -84,6 +109,111 @@ class PDFConverter:
             return False
         except Exception as e:
             logger.warning(f"docx2pdf Konvertierung fehlgeschlagen: {e}")
+            return False
+    
+    def _convert_with_weasyprint(self, docx_path: str, pdf_path: str) -> bool:
+        """Konvertiert mit WeasyPrint (HTML zu PDF)."""
+        try:
+            # Konvertiere DOCX zu HTML mit python-docx2txt
+            import docx2txt
+            html_content = docx2txt.process(docx_path)
+            
+            # Erstelle HTML-Datei mit besserem Styling
+            html_path = docx_path.replace('.docx', '.html')
+            with open(html_path, 'w', encoding='utf-8') as f:
+                f.write(f"""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <style>
+                        @page {{
+                            margin: 2cm;
+                            size: A4;
+                        }}
+                        body {{
+                            font-family: "Times New Roman", serif;
+                            font-size: 12pt;
+                            line-height: 1.5;
+                            margin: 0;
+                            padding: 0;
+                        }}
+                        h1, h2, h3 {{
+                            color: #000;
+                            margin: 20px 0 10px 0;
+                            font-weight: bold;
+                        }}
+                        h1 {{
+                            font-size: 16pt;
+                            text-align: center;
+                        }}
+                        h2 {{
+                            font-size: 14pt;
+                        }}
+                        h3 {{
+                            font-size: 12pt;
+                        }}
+                        table {{
+                            border-collapse: collapse;
+                            width: 100%;
+                            margin: 10px 0;
+                            font-size: 11pt;
+                        }}
+                        th, td {{
+                            border: 1px solid #000;
+                            padding: 6px 8px;
+                            text-align: left;
+                            vertical-align: top;
+                        }}
+                        th {{
+                            background-color: #f0f0f0;
+                            font-weight: bold;
+                            text-align: center;
+                        }}
+                        .center {{
+                            text-align: center;
+                        }}
+                        .bold {{
+                            font-weight: bold;
+                        }}
+                        .underline {{
+                            text-decoration: underline;
+                        }}
+                        p {{
+                            margin: 6px 0;
+                        }}
+                        .signature-line {{
+                            margin-top: 30px;
+                            border-bottom: 1px solid #000;
+                            width: 200px;
+                            display: inline-block;
+                        }}
+                    </style>
+                </head>
+                <body>
+                    {html_content.replace(chr(10), '<br>')}
+                </body>
+                </html>
+                """)
+            
+            # Konvertiere HTML zu PDF mit WeasyPrint
+            from weasyprint import HTML
+            HTML(html_path).write_pdf(pdf_path)
+            
+            # Lösche HTML-Datei
+            os.remove(html_path)
+            
+            if os.path.exists(pdf_path):
+                logger.info(f"PDF erfolgreich mit WeasyPrint erstellt: {pdf_path}")
+                return True
+            else:
+                return False
+                
+        except ImportError:
+            logger.warning("WeasyPrint nicht installiert")
+            return False
+        except Exception as e:
+            logger.warning(f"WeasyPrint Konvertierung fehlgeschlagen: {e}")
             return False
     
     def _convert_with_pandoc(self, docx_path: str, pdf_path: str) -> bool:

@@ -6,6 +6,7 @@ from discord.ext import commands
 from datetime import datetime, timedelta
 from typing import Optional, List
 import logging
+import os
 
 from ..database import DatabaseManager
 from ..form import FormFiller
@@ -144,16 +145,19 @@ class DateTimeSelectionView(ui.View):
             
             if file_path:
                 # Konvertiere zu PDF
+                logger.info(f"Versuche PDF-Konvertierung für: {file_path}")
                 pdf_path = self.pdf_converter.convert_docx_to_pdf(file_path)
                 
-                if pdf_path:
+                if pdf_path and os.path.exists(pdf_path):
                     # Sende PDF als Datei
                     file = discord.File(pdf_path, filename="Entschuldigungsformular.pdf")
                     file_type = "PDF"
+                    logger.info(f"PDF erfolgreich erstellt: {pdf_path}")
                 else:
                     # Fallback: Sende DOCX
                     file = discord.File(file_path, filename="Entschuldigungsformular.docx")
                     file_type = "DOCX"
+                    logger.warning("PDF-Konvertierung fehlgeschlagen, sende DOCX")
                 
                 embed = discord.Embed(
                     title="✅ Formular erfolgreich erstellt!",
@@ -172,10 +176,9 @@ class DateTimeSelectionView(ui.View):
                 
                 await interaction.followup.send(embed=embed, file=file, ephemeral=True)
                 
-                # Lösche temporäre Dateien
+                # Lösche temporäre Dateien (behalte PDF für Debugging)
                 self.pdf_converter.cleanup_temp_files(file_path)
-                if pdf_path and pdf_path != file_path:
-                    self.pdf_converter.cleanup_temp_files(pdf_path)
+                # PDF wird nicht gelöscht, damit es im output-Ordner bleibt
             else:
                 await interaction.followup.send(
                     "❌ Fehler beim Erstellen des Formulars. Bitte versuche es erneut.",
@@ -335,7 +338,17 @@ class StartCommand(commands.Cog):
     async def start_form_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         """Error Handler für Start Command."""
         logger.error(f"Start Command Error: {error}")
-        await interaction.response.send_message(
-            "❌ Ein Fehler ist aufgetreten. Bitte versuche es erneut.",
-            ephemeral=True
-        )
+        
+        try:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    "❌ Ein Fehler ist aufgetreten. Bitte versuche es erneut.",
+                    ephemeral=True
+                )
+            else:
+                await interaction.followup.send(
+                    "❌ Ein Fehler ist aufgetreten. Bitte versuche es erneut.",
+                    ephemeral=True
+                )
+        except Exception as e:
+            logger.error(f"Error handler failed: {e}")
