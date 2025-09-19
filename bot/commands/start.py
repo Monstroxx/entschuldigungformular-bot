@@ -148,20 +148,10 @@ class DateTimeSelectionView(ui.View):
                 logger.info(f"Versuche PDF-Konvertierung für: {file_path}")
                 pdf_path = self.pdf_converter.convert_docx_to_pdf(file_path)
                 
-                if pdf_path and os.path.exists(pdf_path):
-                    # Sende PDF als Datei
-                    file = discord.File(pdf_path, filename="Entschuldigungsformular.pdf")
-                    file_type = "PDF"
-                    logger.info(f"PDF erfolgreich erstellt: {pdf_path}")
-                else:
-                    # Fallback: Sende DOCX
-                    file = discord.File(file_path, filename="Entschuldigungsformular.docx")
-                    file_type = "DOCX"
-                    logger.warning("PDF-Konvertierung fehlgeschlagen, sende DOCX")
-                
+                # Erstelle Embed mit Informationen
                 embed = discord.Embed(
                     title="✅ Formular erfolgreich erstellt!",
-                    description=f"Dein Entschuldigungsformular wurde als {file_type} generiert und ist bereit zum Download.",
+                    description="Dein Entschuldigungsformular wurde generiert und wird als separate Dateien gesendet.",
                     color=0x00ff00
                 )
                 
@@ -169,12 +159,37 @@ class DateTimeSelectionView(ui.View):
                     name="Details",
                     value=f"**Name:** {self.first_name} {self.last_name}\n"
                           f"**Grund:** {self.reason}\n"
-                          f"**Fehlzeiten:** {len(self.absence_periods)}\n"
-                          f"**Format:** {file_type}",
+                          f"**Fehlzeiten:** {len(self.absence_periods)}",
                     inline=False
                 )
                 
-                await interaction.followup.send(embed=embed, file=file, ephemeral=True)
+                # Sende zuerst die Informationsnachricht
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                
+                # Sende DOCX-Datei
+                docx_file = discord.File(file_path, filename="Entschuldigungsformular.docx")
+                await interaction.followup.send(
+                    "📄 **Word-Formular:**",
+                    file=docx_file,
+                    ephemeral=True
+                )
+                
+                # Sende PDF-Datei (falls erfolgreich)
+                if pdf_path and os.path.exists(pdf_path):
+                    pdf_file = discord.File(pdf_path, filename="Entschuldigungsformular.pdf")
+                    await interaction.followup.send(
+                        "📄 **PDF-Formular:**",
+                        file=pdf_file,
+                        ephemeral=True
+                    )
+                    logger.info(f"PDF erfolgreich erstellt: {pdf_path}")
+                else:
+                    # Informiere über fehlgeschlagene PDF-Konvertierung
+                    await interaction.followup.send(
+                        "⚠️ **PDF-Konvertierung fehlgeschlagen** - nur Word-Formular verfügbar",
+                        ephemeral=True
+                    )
+                    logger.warning("PDF-Konvertierung fehlgeschlagen, nur DOCX gesendet")
                 
                 # Lösche temporäre Dateien (behalte PDF für Debugging)
                 self.pdf_converter.cleanup_temp_files(file_path)
