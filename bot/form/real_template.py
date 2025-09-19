@@ -212,29 +212,28 @@ class RealFormTemplate:
         reason = data.get("reason", "")
         current_date = data.get("current_date", datetime.now().strftime("%d.%m.%Y"))
         
+        logger.info(f"Fülle Template mit: {first_name}, {last_name}, {reason}, {current_date}")
+        
         # Suche nach Name-Feldern und ersetze sie
         for paragraph in doc.paragraphs:
             text = paragraph.text
+            logger.info(f"Paragraphen-Text: '{text}'")
             
-            # Suche nach "Nachname, Vorname:" und ersetze den Inhalt danach
-            if "Nachname, Vorname:" in text:
-                # Finde den Text nach "Nachname, Vorname:"
-                parts = text.split("Nachname, Vorname:")
-                if len(parts) > 1:
-                    # Ersetze alles nach "Nachname, Vorname:" mit dem echten Namen
-                    paragraph.text = f"Nachname, Vorname: {last_name}, {first_name}"
+            # Suche nach "Nachname, Vorname" (ohne Doppelpunkt)
+            if "Nachname, Vorname" in text and not f"{last_name}, {first_name}" in text:
+                # Ersetze den gesamten Paragraphen
+                paragraph.text = f"Nachname, Vorname: {last_name}, {first_name}"
+                logger.info(f"Name ersetzt: {paragraph.text}")
             
-            # Suche nach Grund/Reason und ersetze
+            # Suche nach "Grund:" und ersetze
             if "Grund:" in text and not reason in text:
-                parts = text.split("Grund:")
-                if len(parts) > 1:
-                    paragraph.text = f"Grund: {reason}"
+                paragraph.text = f"Grund: {reason}"
+                logger.info(f"Grund ersetzt: {paragraph.text}")
             
-            # Suche nach Datum und ersetze
-            if "Datum:" in text and not current_date in text:
-                parts = text.split("Datum:")
-                if len(parts) > 1:
-                    paragraph.text = f"Datum: {current_date}"
+            # Suche nach "Ort, Datum" und ersetze
+            if "Ort, Datum" in text and not "Bergisch Gladbach" in text:
+                paragraph.text = f"Ort, Datum: Bergisch Gladbach, {current_date}"
+                logger.info(f"Ort, Datum ersetzt: {paragraph.text}")
         
         # Suche in Tabellen nach Platzhaltern
         for table in doc.tables:
@@ -252,6 +251,26 @@ class RealFormTemplate:
                             paragraph.text = text.replace("[GRUND]", reason)
                         if "[DATUM]" in text:
                             paragraph.text = text.replace("[DATUM]", current_date)
+        
+        # Zusätzliche Suche in allen Runs (für fett formatierte Texte)
+        for paragraph in doc.paragraphs:
+            for run in paragraph.runs:
+                text = run.text
+                
+                # Suche nach "Nachname, Vorname" in einzelnen Runs
+                if "Nachname, Vorname" in text and not f"{last_name}, {first_name}" in text:
+                    run.text = f"Nachname, Vorname: {last_name}, {first_name}"
+                    logger.info(f"Name in Run ersetzt: {run.text}")
+                
+                # Suche nach Grund in einzelnen Runs
+                if "Grund:" in text and not reason in text:
+                    run.text = f"Grund: {reason}"
+                    logger.info(f"Grund in Run ersetzt: {run.text}")
+                
+                # Suche nach "Ort, Datum" in einzelnen Runs
+                if "Ort, Datum" in text and not "Bergisch Gladbach" in text:
+                    run.text = f"Ort, Datum: Bergisch Gladbach, {current_date}"
+                    logger.info(f"Ort, Datum in Run ersetzt: {run.text}")
     
     def _add_absence_table(self, doc: Document, absence_periods: List[Dict[str, Any]], schedule: List[Dict[str, str]]):
         """Fügt die Fehlzeiten-Tabelle hinzu."""
