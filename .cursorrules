@@ -1,0 +1,75 @@
+# Cursor Rules für Entschuldigungsformular Discord Bot
+
+## Projekt Kontext
+Dies ist ein Discord Bot, der automatisch Entschuldigungsformulare für die Schule ausfüllt. Der Bot verwendet Slash Commands und interaktive Menüs.
+
+## Code Standards
+
+### Python
+- Verwende Python 3.9+ Features
+- Type Hints für alle Funktionen und Variablen
+- F-Strings für String Formatierung
+- Async/Await für Discord API Calls
+- Error Handling mit try/except und spezifische Exceptions
+
+### Discord.py
+- Verwende Slash Commands (app_commands)
+- Interaktive Komponenten (Buttons, Select Menus, Modals)
+- Proper Error Handling für Discord API
+- Embed Messages für schöne Ausgaben
+
+### Datenbank
+- SQLAlchemy ORM verwenden
+- SQLite für Railway Deployment
+- Proper Session Management
+- Migration Support
+
+### Formular Handling
+- python-docx für Word Dokumente
+- Template-basierte Formular-Erstellung
+- Input Validation vor Verarbeitung
+- Backup der Original-Templates
+
+## Projektstruktur
+- Alle Bot-Module in `bot/` Ordner
+- Commands in `bot/commands/`
+- Datenbank Code in `bot/database/`
+- Formular Logic in `bot/form/`
+- Utilities in `bot/utils/`
+
+## Naming Conventions
+- snake_case für Dateien und Funktionen
+- PascalCase für Klassen
+- UPPER_CASE für Konstanten
+- Deutsche Kommentare für Business Logic
+- Englische Variablennamen
+
+## Error Handling
+- Logging mit Python logging module
+- User-friendly Error Messages
+- Graceful Degradation bei API Fehlern
+- Validation Errors mit hilfreichen Nachrichten
+
+## Security
+- Input Sanitization
+- File Upload Validation
+- Rate Limiting für Commands
+- Environment Variables für Secrets
+
+## Railway Deployment
+- Health Check Endpoint
+- Proper Logging für Production
+- Environment Variable Configuration
+- SQLite Database File Persistence
+
+## Testing
+- Unit Tests für Business Logic
+- Mock Discord API für Tests
+- Integration Tests für Commands
+- Formular Generation Tests
+
+## Performance
+- Async Operations wo möglich
+- Database Connection Pooling
+- File Caching für Templates
+- Memory Management für große Dateien
