@@ -86,6 +86,7 @@ class DateTimeSelectionView(ui.View):
         self.last_name = last_name
         self.reason = reason
         self.absence_periods = []
+        self.pdf_converter = PDFConverter()
     
     @ui.button(label="Heute hinzufügen", style=discord.ButtonStyle.primary, emoji="📅")
     async def add_today(self, interaction: discord.Interaction, button: ui.Button):

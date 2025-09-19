@@ -13,6 +13,7 @@ services:
       - PORT=8000
     volumes:
       - ./output:/app/output
+      - bot_data:/app
     ports:
       - "8000:8000"
     restart: unless-stopped
@@ -22,3 +23,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    # Setze User für bessere Berechtigungen
+    user: "1000:1000"
+
+volumes:
+  bot_data:

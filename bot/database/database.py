@@ -24,8 +24,16 @@ class DatabaseManager:
                 # Railway PostgreSQL
                 database_url = railway_db_url
             else:
-                # Lokale SQLite
-                database_url = "sqlite:///bot.db"
+                # Lokale SQLite - prüfe ob wir im Docker-Container sind
+                if os.path.exists("/app"):
+                    # Im Docker-Container
+                    database_url = "sqlite:////app/bot.db"
+                else:
+                    # Lokal - verwende temporäres Verzeichnis
+                    import tempfile
+                    temp_dir = tempfile.gettempdir()
+                    db_path = os.path.join(temp_dir, "entschuldigungsformular_bot.db")
+                    database_url = f"sqlite:///{db_path}"
         
         # Konfiguriere Engine für Railway
         engine_kwargs = {"echo": False}
