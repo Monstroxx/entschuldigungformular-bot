@@ -9,7 +9,9 @@ RUN apk add --no-cache \
     build-base \
     libffi-dev \
     libxml2-dev \
-    libxslt-dev
+    libxslt-dev \
+    openssl1.1-compat \
+    libc6-compat
 
 # Set working directory
 WORKDIR /app
@@ -20,6 +22,10 @@ COPY tsconfig.json ./
 
 # Install Node.js dependencies (including dev dependencies for build)
 RUN npm ci
+
+# Ensure Prisma uses musl binaries on Alpine and OpenSSL 1.1 compat
+ENV PRISMA_CLI_BINARY_TARGETS=linux-musl
+ENV PRISMA_ENGINES_CHECKSUM_IGNORE=1
 
 # Copy Python requirements
 COPY requirements.txt ./
