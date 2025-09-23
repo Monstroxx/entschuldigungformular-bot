@@ -41,73 +41,92 @@ def replace_placeholders(doc, data):
                 text = text.replace('[LEHRER]', data.get('teacherLastName', 'Müller'))
             run.text = text
 
-def find_table_placeholder(doc):
-    """Findet den [TABELLE] Platzhalter im Dokument"""
-    for paragraph in doc.paragraphs:
-        for run in paragraph.runs:
-            if '[TABELLE]' in run.text:
-                return paragraph
+def find_existing_table(doc):
+    """Findet die bestehende Tabelle im Template"""
+    for table in doc.tables:
+        # Suche nach einer Tabelle mit den typischen Header-Zellen
+        if len(table.rows) > 0 and len(table.rows[0].cells) >= 6:
+            first_row = table.rows[0]
+            header_text = ' '.join([cell.text.strip() for cell in first_row.cells])
+            if '1./2.' in header_text and '3./4.' in header_text:
+                return table
     return None
 
-def create_schedule_table(doc, data):
-    """Erstellt eine Tabelle mit dem Stundenplan"""
-    # Finde den Tabellen-Platzhalter
-    placeholder_paragraph = find_table_placeholder(doc)
-    if not placeholder_paragraph:
-        print("Warnung: [TABELLE] Platzhalter nicht gefunden", file=sys.stderr)
+def manipulate_existing_table(doc, data):
+    """Manipuliert die bestehende Tabelle im Template"""
+    table = find_existing_table(doc)
+    if not table:
+        print("Warnung: Keine bestehende Tabelle gefunden", file=sys.stderr)
         return
 
-    # Erstelle Tabelle
-    table = doc.add_table(rows=1, cols=6)
-    table.alignment = WD_TABLE_ALIGNMENT.CENTER
-    table.style = 'Table Grid'
-
-    # Header-Zeile
-    header_cells = table.rows[0].cells
-    header_cells[0].text = ''
-    header_cells[1].text = ''
-    header_cells[2].text = '1./2.'
-    header_cells[3].text = '3./4.'
-    header_cells[4].text = '5./6.'
-    header_cells[5].text = '7./8.'
-
-    # Zentriere Header-Text
-    for cell in header_cells[2:]:
-        for paragraph in cell.paragraphs:
-            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    # Lösche alle Zeilen außer der Header-Zeile
+    while len(table.rows) > 1:
+        table._element.remove(table.rows[-1]._element)
 
     # Füge Fehlzeiten hinzu
     absence_periods = data.get('absencePeriods', [])
     schedule = data.get('schedule', [])
 
-    for period in absence_periods:
+    # Gruppiere Fehlzeiten nach Wochen
+    weeks = group_absence_periods_by_week(absence_periods)
+
+    for week in weeks:
+        for period in week:
+            start_date = datetime.fromisoformat(period['start'].replace('Z', '+00:00'))
+            end_date = datetime.fromisoformat(period['end'].replace('Z', '+00:00'))
+            
+            current_date = start_date
+            while current_date <= end_date:
+                # Überspringe Wochenenden
+                if current_date.weekday() < 5:  # 0-4 = Montag-Freitag
+                    weekday = get_weekday_name(current_date.weekday())
+                    date_str = current_date.strftime('%d.%m.%Y')
+                    
+                    # Hole Stundenplan für diesen Tag
+                    schedule_entries = get_schedule_for_day(schedule, weekday)
+                    
+                    # Füge Zeile hinzu
+                    row = table.add_row()
+                    row.cells[0].text = weekday
+                    row.cells[1].text = date_str
+                    row.cells[2].text = schedule_entries.get('1./2.', '')
+                    row.cells[3].text = schedule_entries.get('3./4.', '')
+                    row.cells[4].text = schedule_entries.get('5./6.', '')
+                    row.cells[5].text = schedule_entries.get('7./8.', '')
+                
+                current_date = current_date.replace(day=current_date.day + 1)
+
+def group_absence_periods_by_week(periods):
+    """Gruppiert Fehlzeiten nach Wochen"""
+    weeks = []
+    current_week = []
+    
+    for period in periods:
         start_date = datetime.fromisoformat(period['start'].replace('Z', '+00:00'))
         end_date = datetime.fromisoformat(period['end'].replace('Z', '+00:00'))
         
+        # Generiere alle Daten im Zeitraum
         current_date = start_date
         while current_date <= end_date:
             # Überspringe Wochenenden
             if current_date.weekday() < 5:  # 0-4 = Montag-Freitag
-                weekday = get_weekday_name(current_date.weekday())
-                date_str = current_date.strftime('%d.%m.%Y')
+                current_week.append({
+                    'start': current_date.isoformat(),
+                    'end': current_date.isoformat()
+                })
                 
-                # Hole Stundenplan für diesen Tag
-                schedule_entries = get_schedule_for_day(schedule, weekday)
-                
-                # Füge Zeile hinzu
-                row = table.add_row()
-                row.cells[0].text = weekday
-                row.cells[1].text = date_str
-                row.cells[2].text = schedule_entries.get('1./2.', '')
-                row.cells[3].text = schedule_entries.get('3./4.', '')
-                row.cells[4].text = schedule_entries.get('5./6.', '')
-                row.cells[5].text = schedule_entries.get('7./8.', '')
+                # Wenn wir 5 Tage haben (Montag-Freitag), starte eine neue Woche
+                if len(current_week) >= 5:
+                    weeks.append(current_week)
+                    current_week = []
             
             current_date = current_date.replace(day=current_date.day + 1)
-
-    # Ersetze den Platzhalter mit der Tabelle
-    placeholder_paragraph.clear()
-    placeholder_paragraph.add_run("")  # Leerer Paragraph
+    
+    # Füge verbleibende Tage hinzu
+    if current_week:
+        weeks.append(current_week)
+    
+    return weeks
 
 def get_weekday_name(weekday):
     """Konvertiert Wochentag-Nummer zu Name"""
@@ -145,8 +164,8 @@ def process_template(input_path, output_path, data):
         # Ersetze Platzhalter
         replace_placeholders(doc, data)
         
-        # Erstelle Tabellen
-        create_schedule_table(doc, data)
+        # Manipuliere bestehende Tabelle
+        manipulate_existing_table(doc, data)
 
         # Speichere Dokument
         doc.save(output_path)
