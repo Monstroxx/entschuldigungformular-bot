@@ -24,8 +24,10 @@ RUN npm ci --only=production
 # Copy Python requirements
 COPY requirements.txt ./
 
-# Install Python dependencies
-RUN pip3 install --no-cache-dir -r requirements.txt
+# Create Python virtual environment and install dependencies
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source code
 COPY . .
