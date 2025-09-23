@@ -4,8 +4,8 @@ const { PDFConverter } = require('./dist/utils/pdfConverter');
 const fs = require('fs');
 const path = require('path');
 
-async function testTablePlaceholder() {
-  console.log('🧪 Teste [TABELLE] Platzhalter...');
+async function testFinalDocx() {
+  console.log('🧪 Teste finale DOCX-Generierung mit echten Tabellen...');
 
   const templateLoader = new AdvancedTemplateLoader();
   const pdfConverter = new PDFConverter();
@@ -27,24 +27,24 @@ async function testTablePlaceholder() {
   };
 
   try {
-    // Generate DOCX with table placeholder
-    console.log('📄 Generiere DOCX mit [TABELLE] Platzhalter...');
+    // Generate DOCX with real tables
+    console.log('📄 Generiere DOCX mit echten Tabellen...');
     const docxBuffer = await templateLoader.generateForm(testData);
-    const docxPath = path.join(__dirname, 'test_table_placeholder.docx');
+    const docxPath = path.join(__dirname, 'test_final_docx.docx');
     fs.writeFileSync(docxPath, docxBuffer);
     console.log(`✅ DOCX gespeichert: ${docxPath}`);
 
     // Generate PDF
     console.log('📄 Generiere PDF...');
     const pdfBuffer = await pdfConverter.convertDocxToPdf(docxBuffer);
-    const pdfPath = path.join(__dirname, 'test_table_placeholder.pdf');
+    const pdfPath = path.join(__dirname, 'test_final_docx.pdf');
     fs.writeFileSync(pdfPath, pdfBuffer);
     console.log(`✅ PDF gespeichert: ${pdfPath}`);
 
-    console.log('🎉 Test mit [TABELLE] Platzhalter erfolgreich!');
+    console.log('🎉 Test mit echten DOCX-Tabellen erfolgreich!');
   } catch (error) {
-    console.error('❌ Fehler beim Testen des [TABELLE] Platzhalters:', error);
+    console.error('❌ Fehler beim Testen der DOCX-Tabellen:', error);
   }
 }
 
-testTablePlaceholder();
+testFinalDocx();

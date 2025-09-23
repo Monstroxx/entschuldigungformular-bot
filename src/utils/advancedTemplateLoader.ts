@@ -12,81 +12,197 @@ export class AdvancedTemplateLoader {
 
   public async generateForm(data: FormData): Promise<Buffer> {
     try {
-      // Read the template file
-      const templateBuffer = fs.readFileSync(this.templatePath);
-      
-      // Use docx-templates to fill placeholders first
-      const { createReport } = await import('docx-templates');
-      
-      // Prepare template data
-      const templateData = {
-        NACHNAME: data.lastName,
-        VORNAME: data.firstName,
-        GRUND: data.reason,
-        ORT: 'Bergisch Gladbach',
-        DATUM: data.currentDate,
-        LEHRER: data.teacherLastName || 'Müller',
-        // Generate table HTML for replacement
-        TABELLE: this.generateTableHTML(data)
-      };
+      // Create a new document that mimics the template structure
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            // Title
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Entschuldigungsformular",
+                  bold: true,
+                  size: 32
+                })
+              ],
+              alignment: AlignmentType.CENTER
+            }),
 
-      // Generate the document with placeholders filled
-      const report = await createReport({
-        template: templateBuffer,
-        data: templateData,
-        cmdDelimiter: ['[', ']'],
-        additionalJsContext: {}
+            // Spacing
+            new Paragraph({ children: [new TextRun({ text: "" })] }),
+
+            // Name
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `${data.lastName}, ${data.firstName}`,
+                  bold: true
+                })
+              ]
+            }),
+
+            // Reason
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Grund: ${data.reason}`
+                })
+              ]
+            }),
+
+            // Spacing
+            new Paragraph({ children: [new TextRun({ text: "" })] }),
+
+            // Greeting
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Sehr geehrte/r Herr/Frau ${data.teacherLastName || 'Müller'},`
+                })
+              ]
+            }),
+
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Ich entschuldige mein Fehlen für die Unterrichtsstunden an folgenden Tagen:"
+                })
+              ]
+            }),
+
+            // Spacing
+            new Paragraph({ children: [new TextRun({ text: "" })] }),
+
+            // Dynamic Schedule tables
+            ...this.createScheduleTables(data),
+
+            // Spacing
+            new Paragraph({ children: [new TextRun({ text: "" })] }),
+
+            // Note
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Anmerkung: Klausurtermine müssen gekennzeichnet und mit Attest entschuldigt werden."
+                })
+              ]
+            }),
+
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Bei Bedarf die oben stehende Tabelle duplizieren."
+                })
+              ]
+            }),
+
+            // Spacing
+            new Paragraph({ children: [new TextRun({ text: "" })] }),
+
+            // Line
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "_________________________________________________"
+                })
+              ]
+            }),
+
+            // Location and date
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Bergisch Gladbach, ${data.currentDate}`
+                })
+              ]
+            }),
+
+            // Spacing
+            new Paragraph({ children: [new TextRun({ text: "" })] }),
+
+            // Line
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: " _________________________________________________"
+                })
+              ]
+            }),
+
+            // Signature
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Unterschrift(bei Minderjährigen von einem Erziehungsberechtigten)"
+                })
+              ]
+            })
+          ]
+        }]
       });
 
-      return Buffer.from(report);
+      return await Packer.toBuffer(doc);
     } catch (error) {
       console.error('Fehler beim Laden des Templates:', error);
       throw error;
     }
   }
 
-  private generateTableHTML(data: FormData): string {
+  private createScheduleTables(data: FormData): (Paragraph | Table)[] {
+    const elements: (Paragraph | Table)[] = [];
     const weeks = this.groupAbsencePeriodsByWeek(data.absencePeriods);
-    let tableHTML = '';
 
-    weeks.forEach((week, weekIndex) => {
-      if (weekIndex > 0) {
-        tableHTML += '<br/><br/>'; // Spacing between tables
+    weeks.forEach((week, index) => {
+      if (index > 0) {
+        elements.push(new Paragraph({ children: [new TextRun({ text: "" })] })); // Spacing between tables
       }
 
-      tableHTML += `
-        <table border="1" style="border-collapse: collapse; width: 100%;">
-          <tr>
-            <td style="border: 1px solid black; padding: 5px;"></td>
-            <td style="border: 1px solid black; padding: 5px;"></td>
-            <td style="border: 1px solid black; padding: 5px; text-align: center;"><strong>1./2.</strong></td>
-            <td style="border: 1px solid black; padding: 5px; text-align: center;"><strong>3./4.</strong></td>
-            <td style="border: 1px solid black; padding: 5px; text-align: center;"><strong>5./6.</strong></td>
-            <td style="border: 1px solid black; padding: 5px; text-align: center;"><strong>7./8.</strong></td>
-          </tr>
-      `;
+      const rows: TableRow[] = [];
 
+      // Header row
+      const headerRow = new TableRow({
+        children: [
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "" })] })], borders: { top: { style: BorderStyle.NONE, size: 0 }, bottom: { style: BorderStyle.NONE, size: 0 }, left: { style: BorderStyle.NONE, size: 0 }, right: { style: BorderStyle.NONE, size: 0 } } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "" })] })], borders: { top: { style: BorderStyle.NONE, size: 0 }, bottom: { style: BorderStyle.NONE, size: 0 }, left: { style: BorderStyle.NONE, size: 0 }, right: { style: BorderStyle.NONE, size: 0 } } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "1./2." })] })], borders: { top: { style: BorderStyle.SINGLE, size: 6 }, bottom: { style: BorderStyle.SINGLE, size: 6 }, left: { style: BorderStyle.SINGLE, size: 6 }, right: { style: BorderStyle.SINGLE, size: 6 } } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "3./4." })] })], borders: { top: { style: BorderStyle.SINGLE, size: 6 }, bottom: { style: BorderStyle.SINGLE, size: 6 }, left: { style: BorderStyle.SINGLE, size: 6 }, right: { style: BorderStyle.SINGLE, size: 6 } } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "5./6." })] })], borders: { top: { style: BorderStyle.SINGLE, size: 6 }, bottom: { style: BorderStyle.SINGLE, size: 6 }, left: { style: BorderStyle.SINGLE, size: 6 }, right: { style: BorderStyle.SINGLE, size: 6 } } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "7./8." })] })], borders: { top: { style: BorderStyle.SINGLE, size: 6 }, bottom: { style: BorderStyle.SINGLE, size: 6 }, left: { style: BorderStyle.SINGLE, size: 6 }, right: { style: BorderStyle.SINGLE, size: 6 } } })
+        ]
+      });
+      rows.push(headerRow);
+
+      // Add absence periods
       week.forEach(period => {
         const weekday = this.getWeekday(period.start);
         const dateStr = period.start.toLocaleDateString('de-DE');
+
         const scheduleEntries = this.getScheduleForDay(data.schedule, weekday);
 
-        tableHTML += `
-          <tr>
-            <td style="border: 1px solid black; padding: 5px;">${weekday}</td>
-            <td style="border: 1px solid black; padding: 5px;">${dateStr}</td>
-            <td style="border: 1px solid black; padding: 5px;">${scheduleEntries['1./2.'] || ''}</td>
-            <td style="border: 1px solid black; padding: 5px;">${scheduleEntries['3./4.'] || ''}</td>
-            <td style="border: 1px solid black; padding: 5px;">${scheduleEntries['5./6.'] || ''}</td>
-            <td style="border: 1px solid black; padding: 5px;">${scheduleEntries['7./8.'] || ''}</td>
-          </tr>
-        `;
+        const absenceRow = new TableRow({
+          children: [
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: weekday })] })], borders: { top: { style: BorderStyle.SINGLE, size: 6 }, bottom: { style: BorderStyle.SINGLE, size: 6 }, left: { style: BorderStyle.SINGLE, size: 6 }, right: { style: BorderStyle.SINGLE, size: 6 } } }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: dateStr })] })], borders: { top: { style: BorderStyle.SINGLE, size: 6 }, bottom: { style: BorderStyle.SINGLE, size: 6 }, left: { style: BorderStyle.SINGLE, size: 6 }, right: { style: BorderStyle.SINGLE, size: 6 } } }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: scheduleEntries['1./2.'] || '' })] })], borders: { top: { style: BorderStyle.SINGLE, size: 6 }, bottom: { style: BorderStyle.SINGLE, size: 6 }, left: { style: BorderStyle.SINGLE, size: 6 }, right: { style: BorderStyle.SINGLE, size: 6 } } }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: scheduleEntries['3./4.'] || '' })] })], borders: { top: { style: BorderStyle.SINGLE, size: 6 }, bottom: { style: BorderStyle.SINGLE, size: 6 }, left: { style: BorderStyle.SINGLE, size: 6 }, right: { style: BorderStyle.SINGLE, size: 6 } } }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: scheduleEntries['5./6.'] || '' })] })], borders: { top: { style: BorderStyle.SINGLE, size: 6 }, bottom: { style: BorderStyle.SINGLE, size: 6 }, left: { style: BorderStyle.SINGLE, size: 6 }, right: { style: BorderStyle.SINGLE, size: 6 } } }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: scheduleEntries['7./8.'] || '' })] })], borders: { top: { style: BorderStyle.SINGLE, size: 6 }, bottom: { style: BorderStyle.SINGLE, size: 6 }, left: { style: BorderStyle.SINGLE, size: 6 }, right: { style: BorderStyle.SINGLE, size: 6 } } })
+          ]
+        });
+        rows.push(absenceRow);
       });
 
-      tableHTML += '</table>';
+      elements.push(new Table({
+        rows,
+        width: {
+          size: 100,
+          type: WidthType.PERCENTAGE
+        }
+      }));
     });
 
-    return tableHTML;
+    return elements;
   }
 
   private groupAbsencePeriodsByWeek(periods: any[]): any[][] {
