@@ -22,8 +22,9 @@ const client = new Client({
 // Command collection
 (client as any).commands = new Collection();
 
-// Health check server
+// Health check server - start immediately for Railway
 const healthCheck = new HealthCheck(parseInt(process.env.PORT || '8000'));
+healthCheck.start();
 
 // Bot ready event
 client.once(Events.ClientReady, async (readyClient) => {
@@ -54,9 +55,6 @@ client.once(Events.ClientReady, async (readyClient) => {
   } catch (error) {
     console.error('❌ Datenbank-Verbindungsfehler:', error);
   }
-  
-  // Start health check server
-  healthCheck.start();
 });
 
 // Register commands
