@@ -1,8 +1,8 @@
-import { RealTemplateLoader } from './realTemplateLoader';
+import { AdvancedTemplateLoader } from './advancedTemplateLoader';
 import { PDFConverter } from './pdfConverter';
 import { FormData } from '../types';
 
-const templateLoader = new RealTemplateLoader();
+const templateLoader = new AdvancedTemplateLoader();
 const pdfConverter = new PDFConverter();
 
 export async function generateForm(data: FormData): Promise<Buffer> {
