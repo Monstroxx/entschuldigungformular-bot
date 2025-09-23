@@ -44,9 +44,9 @@ RUN chmod +x template_processor.py
 # Expose port (Railway will set PORT environment variable)
 EXPOSE $PORT
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || '8000') + '/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+# Health check disabled (Railway has its own checks or can be configured separately)
+# HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+#   CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || '8000') + '/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
 # Start the application
 CMD ["npm", "start"]
