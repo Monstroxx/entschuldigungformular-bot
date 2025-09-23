@@ -14,7 +14,7 @@ export interface Schedule {
   userId: string;
   hour: string;
   subject: string;
-  weekday?: string;
+  weekday?: string | null;
   createdAt: Date;
 }
 
