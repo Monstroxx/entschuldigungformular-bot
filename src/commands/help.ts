@@ -78,5 +78,5 @@ export async function helpCommand(interaction: ChatInputCommandInteraction) {
     )
     .setFooter({ text: 'Bei Problemen wende dich an den Bot-Administrator' });
 
-  await interaction.reply({ embeds: [embed], ephemeral: true });
+  await interaction.reply({ embeds: [embed], flags: 64 });
 }

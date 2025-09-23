@@ -12,7 +12,7 @@ export async function importCommand(interaction: ChatInputCommandInteraction) {
   if (!attachment) {
     await interaction.reply({
       content: '❌ Bitte lade eine Datei hoch!',
-      ephemeral: true
+      flags: 64
     });
     return;
   }
@@ -21,7 +21,7 @@ export async function importCommand(interaction: ChatInputCommandInteraction) {
   if (!attachment.name?.toLowerCase().endsWith('.csv')) {
     await interaction.reply({
       content: '❌ Bitte lade eine CSV-Datei hoch!',
-      ephemeral: true
+      flags: 64
     });
     return;
   }
@@ -30,12 +30,12 @@ export async function importCommand(interaction: ChatInputCommandInteraction) {
   if (attachment.size > 1024 * 1024) {
     await interaction.reply({
       content: '❌ Datei ist zu groß! Maximum: 1MB',
-      ephemeral: true
+      flags: 64
     });
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
 
   try {
     // Download file
@@ -48,7 +48,7 @@ export async function importCommand(interaction: ChatInputCommandInteraction) {
     if (!scheduleData || scheduleData.length === 0) {
       await interaction.followUp({
         content: '❌ Fehler beim Parsen der CSV-Datei. Bitte überprüfe das Format.\n\n**Erwartetes Format:**\n```\nmo;di;mi;do;fr\n1std;1std;1std;1std;1std\n2std;2std;2std;2std;2std\n3std;3std;3std;3std;3std\n4std;4std;4std;4std;4std\n5std;5std;5std;5std;5std\n6std;6std;6std;6std;6std\n7std;7std;7std;7std;7std\n8std;8std;8std;8std;8std\n```',
-        ephemeral: true
+        flags: 64
       });
       return;
     }
@@ -102,13 +102,13 @@ export async function importCommand(interaction: ChatInputCommandInteraction) {
       inline: false
     });
 
-    await interaction.followUp({ embeds: [embed], ephemeral: true });
+    await interaction.followUp({ embeds: [embed], flags: 64 });
 
   } catch (error) {
     console.error('Fehler beim Importieren des Stundenplans:', error);
     await interaction.followUp({
       content: '❌ Fehler beim Verarbeiten der Datei. Bitte überprüfe das Format und versuche es erneut.',
-      ephemeral: true
+      flags: 64
     });
   }
 }

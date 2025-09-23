@@ -123,13 +123,13 @@ export async function handleSetupModal(interaction: any) {
           }
         );
 
-      await interaction.reply({ embeds: [embed], ephemeral: true });
+      await interaction.reply({ embeds: [embed], flags: 64 });
 
     } catch (error) {
       console.error('Fehler beim Speichern der Setup-Daten:', error);
       await interaction.reply({
         content: '❌ Fehler beim Speichern der Daten. Bitte versuche es erneut.',
-        ephemeral: true
+        flags: 64
       });
     }
   }
