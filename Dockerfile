@@ -10,8 +10,8 @@ RUN apk add --no-cache \
     libffi-dev \
     libxml2-dev \
     libxslt-dev \
-    openssl1.1-compat \
-    libc6-compat
+    openssl \
+    openssl-dev
 
 # Set working directory
 WORKDIR /app
