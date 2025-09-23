@@ -133,22 +133,41 @@ def get_weekday_name(weekday):
     days = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag']
     return days[weekday]
 
+def convert_weekday_short_to_long(short_weekday):
+    """Konvertiert kurze Wochentage zu langen"""
+    weekday_map = {
+        'mo': 'Montag',
+        'di': 'Dienstag', 
+        'mi': 'Mittwoch',
+        'do': 'Donnerstag',
+        'fr': 'Freitag'
+    }
+    return weekday_map.get(short_weekday.lower(), short_weekday)
+
 def get_schedule_for_day(schedule, weekday):
     """Holt Stundenplan für einen bestimmten Wochentag"""
     schedule_entries = {}
+    
+    # Konvertiere Wochentag zu langem Format
+    long_weekday = convert_weekday_short_to_long(weekday)
+    
     for entry in schedule:
-        if entry.get('weekday') == weekday:
+        entry_weekday = entry.get('weekday', '')
+        # Konvertiere auch den Eintrag zu langem Format
+        entry_long_weekday = convert_weekday_short_to_long(entry_weekday)
+        
+        if entry_long_weekday == long_weekday:
             hour = entry.get('hour', '')
             subject = entry.get('subject', '')
             
-            # Mappe Stunden zu Zeitblöcken
-            if '1.' in hour and '2.' in hour:
+            # Mappe Stunden zu Zeitblöcken basierend auf der Stunde
+            if '1.' in hour or '2.' in hour:
                 schedule_entries['1./2.'] = subject
-            elif '3.' in hour and '4.' in hour:
+            elif '3.' in hour or '4.' in hour:
                 schedule_entries['3./4.'] = subject
-            elif '5.' in hour and '6.' in hour:
+            elif '5.' in hour or '6.' in hour:
                 schedule_entries['5./6.'] = subject
-            elif '7.' in hour and '8.' in hour:
+            elif '7.' in hour or '8.' in hour:
                 schedule_entries['7./8.'] = subject
     
     return schedule_entries
