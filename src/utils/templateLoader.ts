@@ -28,32 +28,21 @@ export class TemplateLoader {
         throw new Error(`Template nicht gefunden: ${this.templatePath}`);
       }
 
-      // Prepare template data
+      // Prepare template data - use the exact placeholder format from the template
       const templateData = {
         VORNAME: data.firstName,
         NACHNAME: data.lastName,
         GRUND: data.reason,
         DATUM: data.currentDate,
         ORT: 'Bergisch Gladbach',
-        LEHRER: data.teacherLastName || 'Bruns',
-        // Add schedule data for table
-        SCHEDULE: data.schedule.map(s => ({
-          hour: s.hour,
-          subject: s.subject
-        })),
-        // Add absence periods
-        ABSENCE_PERIODS: data.absencePeriods.map(p => ({
-          weekday: this.getWeekday(p.start),
-          date: p.start.toLocaleDateString('de-DE'),
-          startTime: p.startTime,
-          endTime: p.endTime
-        }))
+        LEHRER: data.teacherLastName || 'Bruns'
       };
 
       // Generate document from template
       const buffer = await createReport({
         template: fs.readFileSync(this.templatePath),
-        data: templateData
+        data: templateData,
+        cmdDelimiter: ['[', ']'] as [string, string]
       });
 
       return Buffer.from(buffer);

@@ -57,33 +57,15 @@ export async function startCommand(interaction: ChatInputCommandInteraction) {
     .setRequired(true)
     .setMaxLength(10);
 
-  // Start time input
-  const startTimeInput = new TextInputBuilder()
-    .setCustomId('start_time')
-    .setLabel('Startzeit (HH:MM)')
-    .setStyle(TextInputStyle.Short)
-    .setPlaceholder('z.B. 08:00')
-    .setRequired(true)
-    .setMaxLength(5);
-
-  // End time input
-  const endTimeInput = new TextInputBuilder()
-    .setCustomId('end_time')
-    .setLabel('Endzeit (HH:MM)')
-    .setStyle(TextInputStyle.Short)
-    .setPlaceholder('z.B. 15:00')
-    .setRequired(true)
-    .setMaxLength(5);
+  // Note: No time inputs needed - always full day
 
   // Add inputs to action rows
   const firstRow = new ActionRowBuilder<TextInputBuilder>().addComponents(reasonInput);
   const secondRow = new ActionRowBuilder<TextInputBuilder>().addComponents(startDateInput);
   const thirdRow = new ActionRowBuilder<TextInputBuilder>().addComponents(endDateInput);
-  const fourthRow = new ActionRowBuilder<TextInputBuilder>().addComponents(startTimeInput);
-  const fifthRow = new ActionRowBuilder<TextInputBuilder>().addComponents(endTimeInput);
 
   // Add action rows to modal
-  modal.addComponents(firstRow, secondRow, thirdRow, fourthRow, fifthRow);
+  modal.addComponents(firstRow, secondRow, thirdRow);
 
   await interaction.showModal(modal);
   } catch (error: any) {
@@ -109,8 +91,6 @@ export async function handleStartModal(interaction: any) {
     const reason = interaction.fields.getTextInputValue('reason');
     const startDateStr = interaction.fields.getTextInputValue('start_date');
     const endDateStr = interaction.fields.getTextInputValue('end_date');
-    const startTime = interaction.fields.getTextInputValue('start_time');
-    const endTime = interaction.fields.getTextInputValue('end_time');
 
     try {
       // Parse dates
@@ -150,8 +130,8 @@ export async function handleStartModal(interaction: any) {
         absencePeriods: [{
           start: startDate,
           end: endDate,
-          startTime,
-          endTime
+          startTime: '08:00',
+          endTime: '15:00'
         }]
       };
 
