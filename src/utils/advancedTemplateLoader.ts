@@ -26,9 +26,8 @@ export class AdvancedTemplateLoader {
         ORT: 'Bergisch Gladbach',
         DATUM: data.currentDate,
         LEHRER: data.teacherLastName || 'Müller',
-        // Add absence periods for table generation
-        ABSENCE_PERIODS: this.prepareAbsencePeriods(data.absencePeriods),
-        SCHEDULE: data.schedule
+        // Generate table HTML for replacement
+        TABELLE: this.generateTableHTML(data)
       };
 
       // Generate the document with placeholders filled
@@ -36,35 +35,7 @@ export class AdvancedTemplateLoader {
         template: templateBuffer,
         data: templateData,
         cmdDelimiter: ['[', ']'],
-        additionalJsContext: {
-          // Helper functions for template
-          formatDate: (date: Date) => date.toLocaleDateString('de-DE'),
-          getWeekday: (date: Date) => {
-            const weekdays = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
-            return weekdays[date.getDay()];
-          },
-          getScheduleForDay: (schedule: any[], weekday: string) => {
-            const daySchedule: { [key: string]: string } = {};
-            const hoursMap: { [key: string]: string } = {
-              '1. Stunde': '1./2.',
-              '2. Stunde': '1./2.',
-              '3. Stunde': '3./4.',
-              '4. Stunde': '3./4.',
-              '5. Stunde': '5./6.',
-              '6. Stunde': '5./6.',
-              '7. Stunde': '7./8.',
-              '8. Stunde': '7./8.',
-            };
-
-            schedule.filter(s => s.weekday === weekday).forEach(entry => {
-              const hourBlock = hoursMap[entry.hour];
-              if (hourBlock) {
-                daySchedule[hourBlock] = daySchedule[hourBlock] ? `${daySchedule[hourBlock]}, ${entry.subject}` : entry.subject;
-              }
-            });
-            return daySchedule;
-          }
-        }
+        additionalJsContext: {}
       });
 
       return Buffer.from(report);
@@ -74,8 +45,53 @@ export class AdvancedTemplateLoader {
     }
   }
 
-  private prepareAbsencePeriods(periods: any[]): any[] {
-    const processedPeriods: any[] = [];
+  private generateTableHTML(data: FormData): string {
+    const weeks = this.groupAbsencePeriodsByWeek(data.absencePeriods);
+    let tableHTML = '';
+
+    weeks.forEach((week, weekIndex) => {
+      if (weekIndex > 0) {
+        tableHTML += '<br/><br/>'; // Spacing between tables
+      }
+
+      tableHTML += `
+        <table border="1" style="border-collapse: collapse; width: 100%;">
+          <tr>
+            <td style="border: 1px solid black; padding: 5px;"></td>
+            <td style="border: 1px solid black; padding: 5px;"></td>
+            <td style="border: 1px solid black; padding: 5px; text-align: center;"><strong>1./2.</strong></td>
+            <td style="border: 1px solid black; padding: 5px; text-align: center;"><strong>3./4.</strong></td>
+            <td style="border: 1px solid black; padding: 5px; text-align: center;"><strong>5./6.</strong></td>
+            <td style="border: 1px solid black; padding: 5px; text-align: center;"><strong>7./8.</strong></td>
+          </tr>
+      `;
+
+      week.forEach(period => {
+        const weekday = this.getWeekday(period.start);
+        const dateStr = period.start.toLocaleDateString('de-DE');
+        const scheduleEntries = this.getScheduleForDay(data.schedule, weekday);
+
+        tableHTML += `
+          <tr>
+            <td style="border: 1px solid black; padding: 5px;">${weekday}</td>
+            <td style="border: 1px solid black; padding: 5px;">${dateStr}</td>
+            <td style="border: 1px solid black; padding: 5px;">${scheduleEntries['1./2.'] || ''}</td>
+            <td style="border: 1px solid black; padding: 5px;">${scheduleEntries['3./4.'] || ''}</td>
+            <td style="border: 1px solid black; padding: 5px;">${scheduleEntries['5./6.'] || ''}</td>
+            <td style="border: 1px solid black; padding: 5px;">${scheduleEntries['7./8.'] || ''}</td>
+          </tr>
+        `;
+      });
+
+      tableHTML += '</table>';
+    });
+
+    return tableHTML;
+  }
+
+  private groupAbsencePeriodsByWeek(periods: any[]): any[][] {
+    const weeks: any[][] = [];
+    let currentWeek: any[] = [];
     
     periods.forEach(period => {
       const startDate = new Date(period.start);
@@ -88,16 +104,25 @@ export class AdvancedTemplateLoader {
           continue;
         }
         
-        processedPeriods.push({
+        currentWeek.push({
           start: new Date(d),
-          end: new Date(d),
-          weekday: this.getWeekday(d),
-          dateStr: d.toLocaleDateString('de-DE')
+          end: new Date(d)
         });
+        
+        // If we have 5 days (Monday-Friday), start a new week
+        if (currentWeek.length >= 5) {
+          weeks.push([...currentWeek]);
+          currentWeek = [];
+        }
       }
     });
-
-    return processedPeriods;
+    
+    // Add remaining days
+    if (currentWeek.length > 0) {
+      weeks.push(currentWeek);
+    }
+    
+    return weeks;
   }
 
   private getScheduleForDay(schedule: any[], weekday: string): { [key: string]: string } {

@@ -4,8 +4,8 @@ const { PDFConverter } = require('./dist/utils/pdfConverter');
 const fs = require('fs');
 const path = require('path');
 
-async function testAdvancedTemplate() {
-  console.log('🧪 Teste Advanced Template mit Tabellen-Manipulation...');
+async function testTablePlaceholder() {
+  console.log('🧪 Teste [TABELLE] Platzhalter...');
 
   const templateLoader = new AdvancedTemplateLoader();
   const pdfConverter = new PDFConverter();
@@ -27,24 +27,24 @@ async function testAdvancedTemplate() {
   };
 
   try {
-    // Generate DOCX with advanced template
-    console.log('📄 Generiere DOCX mit Advanced Template...');
+    // Generate DOCX with table placeholder
+    console.log('📄 Generiere DOCX mit [TABELLE] Platzhalter...');
     const docxBuffer = await templateLoader.generateForm(testData);
-    const docxPath = path.join(__dirname, 'test_advanced.docx');
+    const docxPath = path.join(__dirname, 'test_table_placeholder.docx');
     fs.writeFileSync(docxPath, docxBuffer);
     console.log(`✅ DOCX gespeichert: ${docxPath}`);
 
     // Generate PDF
     console.log('📄 Generiere PDF...');
     const pdfBuffer = await pdfConverter.convertDocxToPdf(docxBuffer);
-    const pdfPath = path.join(__dirname, 'test_advanced.pdf');
+    const pdfPath = path.join(__dirname, 'test_table_placeholder.pdf');
     fs.writeFileSync(pdfPath, pdfBuffer);
     console.log(`✅ PDF gespeichert: ${pdfPath}`);
 
-    console.log('🎉 Test mit Advanced Template erfolgreich!');
+    console.log('🎉 Test mit [TABELLE] Platzhalter erfolgreich!');
   } catch (error) {
-    console.error('❌ Fehler beim Testen des Advanced Templates:', error);
+    console.error('❌ Fehler beim Testen des [TABELLE] Platzhalters:', error);
   }
 }
 
-testAdvancedTemplate();
+testTablePlaceholder();
