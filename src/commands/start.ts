@@ -11,10 +11,11 @@ import { prisma } from '../database/client';
 import { generateForm } from '../utils/formGenerator';
 
 export async function startCommand(interaction: ChatInputCommandInteraction) {
-  // Check if user has completed setup
-  const user = await prisma.user.findUnique({
-    where: { discordId: interaction.user.id }
-  });
+  try {
+    // Check if user has completed setup
+    const user = await prisma.user.findUnique({
+      where: { discordId: interaction.user.id }
+    });
 
   if (!user || !user.firstName || !user.lastName) {
     await interaction.reply({
@@ -85,6 +86,20 @@ export async function startCommand(interaction: ChatInputCommandInteraction) {
   modal.addComponents(firstRow, secondRow, thirdRow, fourthRow, fifthRow);
 
   await interaction.showModal(modal);
+  } catch (error: any) {
+    console.error('Fehler im startCommand:', error);
+    if (error.code === 'P2021') {
+      await interaction.reply({
+        content: '❌ Datenbank-Tabellen existieren noch nicht. Bitte warte einen Moment und versuche es erneut.',
+        ephemeral: true
+      });
+    } else {
+      await interaction.reply({
+        content: '❌ Ein Fehler ist aufgetreten. Bitte versuche es erneut.',
+        ephemeral: true
+      });
+    }
+  }
 }
 
 export async function handleStartModal(interaction: any) {

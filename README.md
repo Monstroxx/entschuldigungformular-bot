@@ -52,13 +52,19 @@ Ein intelligenter Discord Bot, der automatisch Entschuldigungsformulare für die
 ### Railway Deployment
 
 1. **Repository auf Railway verbinden**
-2. **Environment-Variablen setzen:**
+2. **PostgreSQL Datenbank hinzufügen:**
+   - Gehe zu deinem Railway-Projekt
+   - Klicke auf "New" → "Database" → "PostgreSQL"
+   - Railway erstellt automatisch eine `DATABASE_URL`
+
+3. **Environment-Variablen setzen:**
    - `DISCORD_TOKEN` - Dein Discord Bot Token
    - `DISCORD_CLIENT_ID` - Deine Discord Application ID
    - `DISCORD_GUILD_ID` - Deine Discord Server ID (optional)
-   - `DATABASE_URL` - PostgreSQL Datenbank-URL
+   - `DATABASE_URL` - Wird automatisch von Railway gesetzt
 
-3. **Deploy** - Railway erkennt automatisch Node.js und startet den Bot
+4. **Deploy** - Railway erkennt automatisch Node.js und startet den Bot
+   - Die Datenbank-Tabellen werden automatisch beim ersten Start erstellt
 
 ## 📊 Stundenplan-Format
 

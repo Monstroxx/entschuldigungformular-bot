@@ -25,10 +25,24 @@ const client = new Client({
 client.once(Events.ClientReady, async (readyClient) => {
   console.log(`✅ Bot ist online als ${readyClient.user.tag}!`);
   
-  // Test database connection
+  // Test database connection and create tables if needed
   try {
     await prisma.$connect();
     console.log('✅ Datenbank verbunden');
+    
+    // Try to create tables if they don't exist
+    try {
+      await prisma.user.findFirst();
+      console.log('✅ Datenbank-Tabellen existieren');
+    } catch (error: any) {
+      if (error.code === 'P2021') {
+        console.log('⚠️ Datenbank-Tabellen existieren nicht. Führe Migration aus...');
+        // This will be handled by the start script on Railway
+        console.log('Bitte führe "npm run db:push" aus, um die Tabellen zu erstellen.');
+      } else {
+        throw error;
+      }
+    }
   } catch (error) {
     console.error('❌ Datenbank-Verbindungsfehler:', error);
   }
