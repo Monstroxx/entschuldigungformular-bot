@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 async function testRealTemplateFinal() {
-  console.log('🧪 Teste finales Template...');
+  console.log('🧪 Teste echtes Template mit docx-templates...');
 
   const templateLoader = new RealTemplateLoader();
   const pdfConverter = new PDFConverter();
@@ -28,22 +28,22 @@ async function testRealTemplateFinal() {
 
   try {
     // Generate DOCX with real template
-    console.log('📄 Generiere DOCX mit finalem Template...');
+    console.log('📄 Generiere DOCX mit echtem Template...');
     const docxBuffer = await templateLoader.generateForm(testData);
-    const docxPath = path.join(__dirname, 'test_final.docx');
+    const docxPath = path.join(__dirname, 'test_real_final.docx');
     fs.writeFileSync(docxPath, docxBuffer);
     console.log(`✅ DOCX gespeichert: ${docxPath}`);
 
     // Generate PDF
     console.log('📄 Generiere PDF...');
     const pdfBuffer = await pdfConverter.convertDocxToPdf(docxBuffer);
-    const pdfPath = path.join(__dirname, 'test_final.pdf');
+    const pdfPath = path.join(__dirname, 'test_real_final.pdf');
     fs.writeFileSync(pdfPath, pdfBuffer);
     console.log(`✅ PDF gespeichert: ${pdfPath}`);
 
-    console.log('🎉 Test mit finalem Template erfolgreich!');
+    console.log('🎉 Test mit echtem Template erfolgreich!');
   } catch (error) {
-    console.error('❌ Fehler beim Testen des finalen Templates:', error);
+    console.error('❌ Fehler beim Testen des echten Templates:', error);
   }
 }
 
