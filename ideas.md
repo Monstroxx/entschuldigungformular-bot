@@ -3,6 +3,12 @@
 mo;di;mit;do;fri
 1sdt;1sdt;1sdt;1sdt
 2std;2std;2std;2std
+3std;3std;3std;3std
+4std;4std;4std;4std
+5std;5std;5std;5std
+6std;6std;6std;6std
+7std;7std;7std;7std
+8std;8std;8std;8std
 
 ## need also teacher name to replace in doc
 

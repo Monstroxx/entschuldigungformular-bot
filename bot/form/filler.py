@@ -47,6 +47,7 @@ class FormFiller:
                 "current_date": datetime.now().strftime("%d.%m.%Y"),
                 "school_name": "Gymnasium Bergisch Gladbach",
                 "class_name": "",  # Könnte später aus Benutzerdaten kommen
+                "teacher_lastname": user.teacher_last_name or "",
                 "schedule": schedule_data,
                 "absence_periods": absence_periods
             }

@@ -235,6 +235,16 @@ class RealFormTemplate:
             if "[DATUM]" in text:
                 paragraph.text = text.replace("[DATUM]", current_date)
                 logger.info(f"Datum ersetzt: {paragraph.text}")
+            
+            if "[ORT]" in text:
+                paragraph.text = text.replace("[ORT]", "Bergisch Gladbach")
+                logger.info(f"Ort ersetzt: {paragraph.text}")
+            
+            if "[LEHRER]" in text:
+                teacher_lastname = data.get("teacher_lastname", "")
+                if teacher_lastname:
+                    paragraph.text = text.replace("[LEHRER]", teacher_lastname)
+                    logger.info(f"Lehrer ersetzt: {paragraph.text}")
         
         # Suche in Tabellen nach Platzhaltern
         for table in doc.tables:
@@ -252,6 +262,12 @@ class RealFormTemplate:
                             paragraph.text = text.replace("[GRUND]", reason)
                         if "[DATUM]" in text:
                             paragraph.text = text.replace("[DATUM]", current_date)
+                        if "[ORT]" in text:
+                            paragraph.text = text.replace("[ORT]", "Bergisch Gladbach")
+                        if "[LEHRER]" in text:
+                            teacher_lastname = data.get("teacher_lastname", "")
+                            if teacher_lastname:
+                                paragraph.text = text.replace("[LEHRER]", teacher_lastname)
         
         # Zusätzliche Suche in allen Runs (für fett formatierte Texte)
         for paragraph in doc.paragraphs:
@@ -274,6 +290,16 @@ class RealFormTemplate:
                 if "[DATUM]" in text:
                     run.text = text.replace("[DATUM]", current_date)
                     logger.info(f"Datum in Run ersetzt: {run.text}")
+                
+                if "[ORT]" in text:
+                    run.text = text.replace("[ORT]", "Bergisch Gladbach")
+                    logger.info(f"Ort in Run ersetzt: {run.text}")
+                
+                if "[LEHRER]" in text:
+                    teacher_lastname = data.get("teacher_lastname", "")
+                    if teacher_lastname:
+                        run.text = text.replace("[LEHRER]", teacher_lastname)
+                        logger.info(f"Lehrer in Run ersetzt: {run.text}")
     
     def _add_absence_table(self, doc: Document, absence_periods: List[Dict[str, Any]], schedule: List[Dict[str, str]]):
         """Fügt die Fehlzeiten-Tabelle hinzu."""

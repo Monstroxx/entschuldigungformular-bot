@@ -127,6 +127,70 @@ class ImportCommand(commands.Cog):
                 ephemeral=True
             )
     
+    def parse_schedule_format(self, csv_content: str) -> List[Dict[str, str]]:
+        """Parst das neue Stundenplan-Format."""
+        try:
+            lines = csv_content.strip().split('\n')
+            if len(lines) < 2:
+                return []
+            
+            # Erste Zeile: Wochentage (mo;di;mi;do;fr)
+            weekdays = [day.strip() for day in lines[0].split(';')]
+            
+            # Restliche Zeilen: Stunden
+            schedule_data = []
+            
+            for line_num, line in enumerate(lines[1:], 1):
+                if not line.strip():
+                    continue
+                    
+                subjects = [subj.strip() for subj in line.split(';')]
+                
+                # Für jede Stunde (1std, 2std, etc.)
+                for i, subject in enumerate(subjects):
+                    if i < len(weekdays) and subject:
+                        # Extrahiere Stundennummer aus dem Format (z.B. "1std" -> "1. Stunde")
+                        hour_match = subjects[0].replace('std', '') if subjects[0] else str(line_num)
+                        try:
+                            hour_num = int(hour_match)
+                            hour_name = f"{hour_num}. Stunde"
+                        except ValueError:
+                            hour_name = f"{hour_match}. Stunde"
+                        
+                        schedule_data.append({
+                            'hour': hour_name,
+                            'subject': subject,
+                            'weekday': weekdays[i] if i < len(weekdays) else f"Tag {i+1}"
+                        })
+            
+            return schedule_data
+            
+        except Exception as e:
+            logger.error(f"Fehler beim Parsen des Stundenplan-Formats: {e}")
+            return []
+    
+    def parse_old_format(self, df) -> List[Dict[str, str]]:
+        """Parst das alte Stundenplan-Format."""
+        try:
+            # Validiere Format
+            if len(df.columns) < 2:
+                return []
+            
+            # Konvertiere zu Liste von Dictionaries
+            schedule_data = []
+            for _, row in df.iterrows():
+                if len(row) >= 2 and pd.notna(row.iloc[0]) and pd.notna(row.iloc[1]):
+                    schedule_data.append({
+                        'hour': str(row.iloc[0]),
+                        'subject': str(row.iloc[1])
+                    })
+            
+            return schedule_data
+            
+        except Exception as e:
+            logger.error(f"Fehler beim Parsen des alten Formats: {e}")
+            return []
+
     @import_schedule.error
     async def import_schedule_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         """Error Handler für Import Command."""

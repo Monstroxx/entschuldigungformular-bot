@@ -18,6 +18,8 @@ class User(Base):
     discord_id = Column(String(20), unique=True, nullable=False, index=True)
     first_name = Column(String(50), nullable=True)
     last_name = Column(String(50), nullable=True)
+    teacher_first_name = Column(String(50), nullable=True)
+    teacher_last_name = Column(String(50), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

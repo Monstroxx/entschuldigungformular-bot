@@ -68,11 +68,13 @@ class EntschuldigungsformularBot(commands.Bot):
             from .commands.start import StartCommand
             from .commands.help import HelpCommand
             from .commands.import_cmd import ImportCommand
+            from .commands.setup import SetupCommand
             
             # Füge Commands hinzu
             await self.add_cog(StartCommand(self, self.db_manager, self.form_filler))
             await self.add_cog(HelpCommand(self))
             await self.add_cog(ImportCommand(self, self.db_manager))
+            await self.add_cog(SetupCommand(self))
             
             logger.info("Commands erfolgreich geladen")
         except Exception as e:
