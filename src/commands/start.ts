@@ -8,7 +8,7 @@ import {
   AttachmentBuilder
 } from 'discord.js';
 import { prisma } from '../database/client';
-import { generateForm } from '../utils/formGenerator';
+import { generateFormWithPDF } from '../utils/formGenerator';
 
 export async function startCommand(interaction: ChatInputCommandInteraction) {
   try {
@@ -155,12 +155,16 @@ export async function handleStartModal(interaction: any) {
         }]
       };
 
-      // Generate DOCX file
-      const docxBuffer = await generateForm(formData);
+      // Generate DOCX and PDF files
+      const { docx: docxBuffer, pdf: pdfBuffer } = await generateFormWithPDF(formData);
 
-      // Create attachment
-      const attachment = new AttachmentBuilder(docxBuffer, {
+      // Create attachments
+      const docxAttachment = new AttachmentBuilder(docxBuffer, {
         name: `Entschuldigungsformular_${user.firstName}_${user.lastName}.docx`
+      });
+
+      const pdfAttachment = new AttachmentBuilder(pdfBuffer, {
+        name: `Entschuldigungsformular_${user.firstName}_${user.lastName}.pdf`
       });
 
       // Create success embed
@@ -176,10 +180,18 @@ export async function handleStartModal(interaction: any) {
           }
         );
 
+      // Send DOCX first
       await interaction.reply({ 
         embeds: [embed], 
-        files: [attachment],
-        ephemeral: true 
+        files: [docxAttachment],
+        flags: 64 
+      });
+
+      // Send PDF as follow-up
+      await interaction.followUp({
+        content: '📄 Hier ist dein Formular als PDF:',
+        files: [pdfAttachment],
+        flags: 64
       });
 
       // Save to database

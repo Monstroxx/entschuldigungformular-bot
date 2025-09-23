@@ -17,21 +17,29 @@
     "type": "git",
     "url": "git+https://github.com/Monstroxx/entschuldigungformular-bot.git"
   },
-  "keywords": ["discord", "bot", "entschuldigung", "formular", "schule"],
+  "keywords": [
+    "discord",
+    "bot",
+    "entschuldigung",
+    "formular",
+    "schule"
+  ],
   "author": "Monstroxx",
   "license": "ISC",
   "dependencies": {
-    "discord.js": "^14.14.1",
-    "prisma": "^5.7.1",
     "@prisma/client": "^5.7.1",
-    "dotenv": "^16.3.1",
+    "discord.js": "^14.14.1",
     "docx": "^8.5.0",
-    "pdf-lib": "^1.17.1"
+    "docx-templates": "^4.14.1",
+    "dotenv": "^16.3.1",
+    "libreoffice-convert": "^1.7.0",
+    "pdf-lib": "^1.17.1",
+    "prisma": "^5.7.1"
   },
   "devDependencies": {
-    "typescript": "^5.3.3",
     "@types/node": "^20.10.5",
+    "nodemon": "^3.0.2",
     "ts-node": "^10.9.2",
-    "nodemon": "^3.0.2"
+    "typescript": "^5.3.3"
   }
 }
