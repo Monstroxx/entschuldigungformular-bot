@@ -11,8 +11,9 @@ logger = logging.getLogger(__name__)
 class SetupCommand(commands.Cog):
     """Setup Command für die Initialkonfiguration des Bots."""
     
-    def __init__(self, bot):
+    def __init__(self, bot, db_manager=None):
         self.bot = bot
+        self.db_manager = db_manager or bot.db_manager
     
     @app_commands.command(name="setup", description="Initialkonfiguration des Bots")
     async def setup(self, interaction: discord.Interaction):

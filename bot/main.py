@@ -70,15 +70,26 @@ class EntschuldigungsformularBot(commands.Bot):
             from .commands.import_cmd import ImportCommand
             from .commands.setup import SetupCommand
             
+            logger.info("Starte Command-Loading...")
+            
             # Füge Commands hinzu
+            logger.info("Lade StartCommand...")
             await self.add_cog(StartCommand(self, self.db_manager, self.form_filler))
+            
+            logger.info("Lade HelpCommand...")
             await self.add_cog(HelpCommand(self))
+            
+            logger.info("Lade ImportCommand...")
             await self.add_cog(ImportCommand(self, self.db_manager))
-            await self.add_cog(SetupCommand(self))
+            
+            logger.info("Lade SetupCommand...")
+            await self.add_cog(SetupCommand(self, self.db_manager))
             
             logger.info("Commands erfolgreich geladen")
         except Exception as e:
             logger.error(f"Fehler beim Laden der Commands: {e}")
+            import traceback
+            traceback.print_exc()
     
     async def on_guild_join(self, guild):
         """Wird aufgerufen wenn der Bot einem Server beitritt."""

@@ -5,7 +5,7 @@ from discord import app_commands
 from discord.ext import commands
 import pandas as pd
 import io
-from typing import Optional
+from typing import Optional, List, Dict
 import logging
 
 from ..database import DatabaseManager
