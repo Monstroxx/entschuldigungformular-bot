@@ -1,7 +1,10 @@
-import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle } from 'docx';
 import { FormData } from '../types';
 import * as fs from 'fs';
 import * as path from 'path';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 export class AdvancedTemplateLoader {
   private templatePath: string;
@@ -12,260 +15,74 @@ export class AdvancedTemplateLoader {
 
   public async generateForm(data: FormData): Promise<Buffer> {
     try {
-      // Create a new document that mimics the template structure
-      const doc = new Document({
-        sections: [{
-          properties: {},
-          children: [
-            // Title
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: "Entschuldigungsformular",
-                  bold: true,
-                  size: 32
-                })
-              ],
-              alignment: AlignmentType.CENTER
-            }),
+      // Erstelle temporäre Dateien
+      const tempDir = path.join(__dirname, '../../temp');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
 
-            // Spacing
-            new Paragraph({ children: [new TextRun({ text: "" })] }),
+      const tempInputPath = path.join(tempDir, 'template.docx');
+      const tempOutputPath = path.join(tempDir, 'output.docx');
+      const tempDataPath = path.join(tempDir, 'data.json');
 
-            // Name
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: `${data.lastName}, ${data.firstName}`,
-                  bold: true
-                })
-              ]
-            }),
+      // Kopiere Template
+      fs.copyFileSync(this.templatePath, tempInputPath);
 
-            // Reason
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: `Grund: ${data.reason}`
-                })
-              ]
-            }),
+      // Bereite Daten für Python vor
+      const pythonData = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        reason: data.reason,
+        currentDate: data.currentDate,
+        location: 'Bergisch Gladbach',
+        teacherLastName: data.teacherLastName || 'Müller',
+        absencePeriods: data.absencePeriods.map(period => ({
+          start: period.start.toISOString(),
+          end: period.end.toISOString(),
+          startTime: period.startTime,
+          endTime: period.endTime
+        })),
+        schedule: data.schedule.map(entry => ({
+          hour: entry.hour,
+          subject: entry.subject,
+          weekday: entry.weekday
+        }))
+      };
 
-            // Spacing
-            new Paragraph({ children: [new TextRun({ text: "" })] }),
+      // Speichere Daten als JSON
+      fs.writeFileSync(tempDataPath, JSON.stringify(pythonData, null, 2));
 
-            // Greeting
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: `Sehr geehrte/r Herr/Frau ${data.teacherLastName || 'Müller'},`
-                })
-              ]
-            }),
+      // Führe Python-Script aus
+      const pythonScriptPath = path.join(__dirname, '../../template_processor.py');
+      const command = `python3 "${pythonScriptPath}" "${tempInputPath}" "${tempOutputPath}" "${JSON.stringify(pythonData).replace(/"/g, '\\"')}"`;
 
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: "Ich entschuldige mein Fehlen für die Unterrichtsstunden an folgenden Tagen:"
-                })
-              ]
-            }),
+      console.log('Führe Python Template-Processor aus...');
+      const { stdout, stderr } = await execAsync(command);
 
-            // Spacing
-            new Paragraph({ children: [new TextRun({ text: "" })] }),
+      if (stderr) {
+        console.log('Python stderr:', stderr);
+      }
 
-            // Dynamic Schedule tables
-            ...this.createScheduleTables(data),
+      // Lese generiertes Dokument
+      if (!fs.existsSync(tempOutputPath)) {
+        throw new Error('Python-Script hat keine Ausgabedatei erstellt');
+      }
 
-            // Spacing
-            new Paragraph({ children: [new TextRun({ text: "" })] }),
+      const resultBuffer = fs.readFileSync(tempOutputPath);
 
-            // Note
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: "Anmerkung: Klausurtermine müssen gekennzeichnet und mit Attest entschuldigt werden."
-                })
-              ]
-            }),
+      // Aufräumen
+      try {
+        fs.unlinkSync(tempInputPath);
+        fs.unlinkSync(tempOutputPath);
+        fs.unlinkSync(tempDataPath);
+      } catch (cleanupError) {
+        console.warn('Fehler beim Aufräumen der temporären Dateien:', cleanupError);
+      }
 
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: "Bei Bedarf die oben stehende Tabelle duplizieren."
-                })
-              ]
-            }),
-
-            // Spacing
-            new Paragraph({ children: [new TextRun({ text: "" })] }),
-
-            // Line
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: "_________________________________________________"
-                })
-              ]
-            }),
-
-            // Location and date
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: `Bergisch Gladbach, ${data.currentDate}`
-                })
-              ]
-            }),
-
-            // Spacing
-            new Paragraph({ children: [new TextRun({ text: "" })] }),
-
-            // Line
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: " _________________________________________________"
-                })
-              ]
-            }),
-
-            // Signature
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: "Unterschrift(bei Minderjährigen von einem Erziehungsberechtigten)"
-                })
-              ]
-            })
-          ]
-        }]
-      });
-
-      return await Packer.toBuffer(doc);
+      return resultBuffer;
     } catch (error) {
-      console.error('Fehler beim Laden des Templates:', error);
+      console.error('Fehler beim Generieren des Formulars:', error);
       throw error;
     }
-  }
-
-  private createScheduleTables(data: FormData): (Paragraph | Table)[] {
-    const elements: (Paragraph | Table)[] = [];
-    const weeks = this.groupAbsencePeriodsByWeek(data.absencePeriods);
-
-    weeks.forEach((week, index) => {
-      if (index > 0) {
-        elements.push(new Paragraph({ children: [new TextRun({ text: "" })] })); // Spacing between tables
-      }
-
-      const rows: TableRow[] = [];
-
-      // Header row
-      const headerRow = new TableRow({
-        children: [
-          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "" })] })], borders: { top: { style: BorderStyle.NONE, size: 0 }, bottom: { style: BorderStyle.NONE, size: 0 }, left: { style: BorderStyle.NONE, size: 0 }, right: { style: BorderStyle.NONE, size: 0 } } }),
-          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "" })] })], borders: { top: { style: BorderStyle.NONE, size: 0 }, bottom: { style: BorderStyle.NONE, size: 0 }, left: { style: BorderStyle.NONE, size: 0 }, right: { style: BorderStyle.NONE, size: 0 } } }),
-          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "1./2." })] })], borders: { top: { style: BorderStyle.SINGLE, size: 6 }, bottom: { style: BorderStyle.SINGLE, size: 6 }, left: { style: BorderStyle.SINGLE, size: 6 }, right: { style: BorderStyle.SINGLE, size: 6 } } }),
-          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "3./4." })] })], borders: { top: { style: BorderStyle.SINGLE, size: 6 }, bottom: { style: BorderStyle.SINGLE, size: 6 }, left: { style: BorderStyle.SINGLE, size: 6 }, right: { style: BorderStyle.SINGLE, size: 6 } } }),
-          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "5./6." })] })], borders: { top: { style: BorderStyle.SINGLE, size: 6 }, bottom: { style: BorderStyle.SINGLE, size: 6 }, left: { style: BorderStyle.SINGLE, size: 6 }, right: { style: BorderStyle.SINGLE, size: 6 } } }),
-          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "7./8." })] })], borders: { top: { style: BorderStyle.SINGLE, size: 6 }, bottom: { style: BorderStyle.SINGLE, size: 6 }, left: { style: BorderStyle.SINGLE, size: 6 }, right: { style: BorderStyle.SINGLE, size: 6 } } })
-        ]
-      });
-      rows.push(headerRow);
-
-      // Add absence periods
-      week.forEach(period => {
-        const weekday = this.getWeekday(period.start);
-        const dateStr = period.start.toLocaleDateString('de-DE');
-
-        const scheduleEntries = this.getScheduleForDay(data.schedule, weekday);
-
-        const absenceRow = new TableRow({
-          children: [
-            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: weekday })] })], borders: { top: { style: BorderStyle.SINGLE, size: 6 }, bottom: { style: BorderStyle.SINGLE, size: 6 }, left: { style: BorderStyle.SINGLE, size: 6 }, right: { style: BorderStyle.SINGLE, size: 6 } } }),
-            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: dateStr })] })], borders: { top: { style: BorderStyle.SINGLE, size: 6 }, bottom: { style: BorderStyle.SINGLE, size: 6 }, left: { style: BorderStyle.SINGLE, size: 6 }, right: { style: BorderStyle.SINGLE, size: 6 } } }),
-            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: scheduleEntries['1./2.'] || '' })] })], borders: { top: { style: BorderStyle.SINGLE, size: 6 }, bottom: { style: BorderStyle.SINGLE, size: 6 }, left: { style: BorderStyle.SINGLE, size: 6 }, right: { style: BorderStyle.SINGLE, size: 6 } } }),
-            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: scheduleEntries['3./4.'] || '' })] })], borders: { top: { style: BorderStyle.SINGLE, size: 6 }, bottom: { style: BorderStyle.SINGLE, size: 6 }, left: { style: BorderStyle.SINGLE, size: 6 }, right: { style: BorderStyle.SINGLE, size: 6 } } }),
-            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: scheduleEntries['5./6.'] || '' })] })], borders: { top: { style: BorderStyle.SINGLE, size: 6 }, bottom: { style: BorderStyle.SINGLE, size: 6 }, left: { style: BorderStyle.SINGLE, size: 6 }, right: { style: BorderStyle.SINGLE, size: 6 } } }),
-            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: scheduleEntries['7./8.'] || '' })] })], borders: { top: { style: BorderStyle.SINGLE, size: 6 }, bottom: { style: BorderStyle.SINGLE, size: 6 }, left: { style: BorderStyle.SINGLE, size: 6 }, right: { style: BorderStyle.SINGLE, size: 6 } } })
-          ]
-        });
-        rows.push(absenceRow);
-      });
-
-      elements.push(new Table({
-        rows,
-        width: {
-          size: 100,
-          type: WidthType.PERCENTAGE
-        }
-      }));
-    });
-
-    return elements;
-  }
-
-  private groupAbsencePeriodsByWeek(periods: any[]): any[][] {
-    const weeks: any[][] = [];
-    let currentWeek: any[] = [];
-    
-    periods.forEach(period => {
-      const startDate = new Date(period.start);
-      const endDate = new Date(period.end);
-      
-      // Generate all dates in the period
-      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-        // Skip weekends (Saturday = 6, Sunday = 0)
-        if (d.getDay() === 0 || d.getDay() === 6) {
-          continue;
-        }
-        
-        currentWeek.push({
-          start: new Date(d),
-          end: new Date(d)
-        });
-        
-        // If we have 5 days (Monday-Friday), start a new week
-        if (currentWeek.length >= 5) {
-          weeks.push([...currentWeek]);
-          currentWeek = [];
-        }
-      }
-    });
-    
-    // Add remaining days
-    if (currentWeek.length > 0) {
-      weeks.push(currentWeek);
-    }
-    
-    return weeks;
-  }
-
-  private getScheduleForDay(schedule: any[], weekday: string): { [key: string]: string } {
-    const daySchedule: { [key: string]: string } = {};
-    const hoursMap: { [key: string]: string } = {
-      '1. Stunde': '1./2.',
-      '2. Stunde': '1./2.',
-      '3. Stunde': '3./4.',
-      '4. Stunde': '3./4.',
-      '5. Stunde': '5./6.',
-      '6. Stunde': '5./6.',
-      '7. Stunde': '7./8.',
-      '8. Stunde': '7./8.',
-    };
-
-    schedule.filter(s => s.weekday === weekday).forEach(entry => {
-      const hourBlock = hoursMap[entry.hour];
-      if (hourBlock) {
-        daySchedule[hourBlock] = daySchedule[hourBlock] ? `${daySchedule[hourBlock]}, ${entry.subject}` : entry.subject;
-      }
-    });
-    
-    return daySchedule;
-  }
-
-  private getWeekday(date: Date): string {
-    const weekdays = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
-    return weekdays[date.getDay()];
   }
 }
