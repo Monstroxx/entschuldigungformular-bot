@@ -4,8 +4,8 @@ export class HealthCheck {
   private server: any;
   private port: number;
 
-  constructor(port: number = 8000) {
-    this.port = port;
+  constructor(port?: number) {
+    this.port = port || parseInt(process.env.PORT || '8000', 10);
   }
 
   start(): void {
@@ -23,7 +23,7 @@ export class HealthCheck {
       }
     });
 
-    this.server.listen(this.port, () => {
+    this.server.listen(this.port, '0.0.0.0', () => {
       console.log(`✅ Health check server started on port ${this.port}`);
     });
   }
