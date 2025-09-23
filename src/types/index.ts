@@ -41,7 +41,7 @@ export interface FormData {
   lastName: string;
   reason: string;
   currentDate: string;
-  teacherLastName?: string;
+  teacherLastName?: string | null;
   schedule: Schedule[];
   absencePeriods: AbsencePeriod[];
 }
