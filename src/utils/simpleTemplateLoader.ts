@@ -105,7 +105,7 @@ export class SimpleTemplateLoader {
           new Paragraph({
             children: [
               new TextRun({
-                text: `${data.teacherLastName || 'Bruns'}, ${data.currentDate}`
+                text: `Bergisch Gladbach, ${data.currentDate}`
               })
             ]
           }),
@@ -214,6 +214,11 @@ export class SimpleTemplateLoader {
       
       // Generate all dates in the period
       for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        // Skip weekends (Saturday = 6, Sunday = 0)
+        if (d.getDay() === 0 || d.getDay() === 6) {
+          continue;
+        }
+        
         currentWeek.push({
           start: new Date(d),
           end: new Date(d)
