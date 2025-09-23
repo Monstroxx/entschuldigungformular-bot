@@ -185,6 +185,22 @@ export async function handleStartModal(interaction: any) {
         }
       });
 
+      // Update bot status with new form count
+      try {
+        const formCount = await prisma.excuseForm.count();
+        const statusText = `📋 ${formCount} Krankmeldungen generiert`;
+        
+        interaction.client.user?.setPresence({
+          activities: [{
+            name: statusText,
+            type: 3, // WATCHING
+          }],
+          status: 'online',
+        });
+      } catch (error) {
+        console.error('Fehler beim Aktualisieren des Bot-Status:', error);
+      }
+
     } catch (error) {
       console.error('Fehler beim Erstellen des Formulars:', error);
       await interaction.reply({

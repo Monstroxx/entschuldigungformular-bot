@@ -4,6 +4,7 @@ import { setupCommands, handleSetupModal } from './commands/setup';
 import { startCommand, handleStartModal } from './commands/start';
 import { importCommand } from './commands/import';
 import { helpCommand } from './commands/help';
+import { infoCommand, handleInfoCommand } from './commands/info';
 import { prisma } from './database/client';
 import { HealthCheck } from './utils/health';
 
@@ -52,10 +53,33 @@ client.once(Events.ClientReady, async (readyClient) => {
     } else {
       console.log('⚠️ Lokale Entwicklung - Datenbank-Prüfung übersprungen');
     }
+
+    // Set RPC status with generated forms count
+    await updateBotStatus(readyClient);
   } catch (error) {
     console.error('❌ Datenbank-Verbindungsfehler:', error);
   }
 });
+
+// Function to update bot status with form count
+async function updateBotStatus(client: Client) {
+  try {
+    const formCount = await prisma.excuseForm.count();
+    const statusText = `📋 ${formCount} Krankmeldungen generiert`;
+    
+    client.user?.setPresence({
+      activities: [{
+        name: statusText,
+        type: 3, // WATCHING
+      }],
+      status: 'online',
+    });
+    
+    console.log(`✅ Bot Status gesetzt: ${statusText}`);
+  } catch (error) {
+    console.error('❌ Fehler beim Setzen des Bot-Status:', error);
+  }
+}
 
 // Register commands
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -75,6 +99,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
           break;
         case 'help':
           await helpCommand(interaction);
+          break;
+        case 'info':
+          await handleInfoCommand(interaction);
           break;
         default:
           await interaction.reply({

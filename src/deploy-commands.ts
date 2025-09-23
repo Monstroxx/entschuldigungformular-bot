@@ -29,6 +29,10 @@ const commands = [
     name: 'help',
     description: 'Zeige Hilfe und verfügbare Befehle',
   },
+  {
+    name: 'info',
+    description: 'Zeigt Bot-Informationen und Statistiken',
+  },
 ];
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN!);
