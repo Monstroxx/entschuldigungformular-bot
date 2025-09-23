@@ -1,0 +1,37 @@
+{
+  "name": "entschuldigungformular-bot",
+  "version": "1.0.0",
+  "description": "Ein intelligenter Discord Bot, der automatisch Entschuldigungsformulare für die Schule ausfüllt und als DOCX exportiert.",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "nodemon src/index.ts",
+    "deploy-commands": "ts-node src/deploy-commands.ts",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Monstroxx/entschuldigungformular-bot.git"
+  },
+  "keywords": ["discord", "bot", "entschuldigung", "formular", "schule"],
+  "author": "Monstroxx",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "prisma": "^5.7.1",
+    "@prisma/client": "^5.7.1",
+    "dotenv": "^16.3.1",
+    "docx": "^8.5.0",
+    "pdf-lib": "^1.17.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/node": "^20.10.5",
+    "ts-node": "^10.9.2",
+    "nodemon": "^3.0.2"
+  }
+}

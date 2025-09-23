@@ -1,0 +1,99 @@
+import { Client, GatewayIntentBits, Collection, Events } from 'discord.js';
+import { config } from 'dotenv';
+import { setupCommands, handleSetupModal } from './commands/setup';
+import { startCommand, handleStartModal } from './commands/start';
+import { importCommand } from './commands/import';
+import { helpCommand } from './commands/help';
+import { prisma } from './database/client';
+
+// Load environment variables
+config();
+
+// Create Discord client
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+  ],
+});
+
+// Command collection
+(client as any).commands = new Collection();
+
+// Bot ready event
+client.once(Events.ClientReady, async (readyClient) => {
+  console.log(`✅ Bot ist online als ${readyClient.user.tag}!`);
+  
+  // Test database connection
+  try {
+    await prisma.$connect();
+    console.log('✅ Datenbank verbunden');
+  } catch (error) {
+    console.error('❌ Datenbank-Verbindungsfehler:', error);
+  }
+});
+
+// Register commands
+client.on(Events.InteractionCreate, async (interaction) => {
+  try {
+    if (interaction.isChatInputCommand()) {
+      const { commandName } = interaction;
+
+      switch (commandName) {
+        case 'setup':
+          await setupCommands(interaction);
+          break;
+        case 'start':
+          await startCommand(interaction);
+          break;
+        case 'import':
+          await importCommand(interaction);
+          break;
+        case 'help':
+          await helpCommand(interaction);
+          break;
+        default:
+          await interaction.reply({
+            content: '❌ Unbekannter Command!',
+            ephemeral: true,
+          });
+      }
+    } else if (interaction.isModalSubmit()) {
+      // Handle modal submissions
+      if (interaction.customId === 'setup_modal') {
+        await handleSetupModal(interaction);
+      } else if (interaction.customId === 'start_form_modal') {
+        await handleStartModal(interaction);
+      }
+    }
+  } catch (error) {
+    console.error('Fehler beim Verarbeiten der Interaktion:', error);
+    
+    if (interaction.isRepliable()) {
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp({
+          content: '❌ Ein Fehler ist aufgetreten!',
+          ephemeral: true,
+        });
+      } else {
+        await interaction.reply({
+          content: '❌ Ein Fehler ist aufgetreten!',
+          ephemeral: true,
+        });
+      }
+    }
+  }
+});
+
+// Error handling
+client.on('error', (error) => {
+  console.error('Discord Client Error:', error);
+});
+
+process.on('unhandledRejection', (error) => {
+  console.error('Unhandled Promise Rejection:', error);
+});
+
+// Login to Discord
+client.login(process.env.DISCORD_TOKEN);
