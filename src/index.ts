@@ -5,6 +5,7 @@ import { startCommand, handleStartModal } from './commands/start';
 import { importCommand } from './commands/import';
 import { helpCommand } from './commands/help';
 import { prisma } from './database/client';
+import { HealthCheck } from './utils/health';
 
 // Load environment variables
 config();
@@ -21,6 +22,9 @@ const client = new Client({
 // Command collection
 (client as any).commands = new Collection();
 
+// Health check server
+const healthCheck = new HealthCheck(parseInt(process.env.PORT || '8000'));
+
 // Bot ready event
 client.once(Events.ClientReady, async (readyClient) => {
   console.log(`✅ Bot ist online als ${readyClient.user.tag}!`);
@@ -30,22 +34,29 @@ client.once(Events.ClientReady, async (readyClient) => {
     await prisma.$connect();
     console.log('✅ Datenbank verbunden');
     
-    // Try to create tables if they don't exist
-    try {
-      await prisma.user.findFirst();
-      console.log('✅ Datenbank-Tabellen existieren');
-    } catch (error: any) {
-      if (error.code === 'P2021') {
-        console.log('⚠️ Datenbank-Tabellen existieren nicht. Führe Migration aus...');
-        // This will be handled by the start script on Railway
-        console.log('Bitte führe "npm run db:push" aus, um die Tabellen zu erstellen.');
-      } else {
-        throw error;
+    // Try to create tables if they don't exist (only in production)
+    if (process.env.NODE_ENV === 'production') {
+      try {
+        await prisma.user.findFirst();
+        console.log('✅ Datenbank-Tabellen existieren');
+      } catch (error: any) {
+        if (error.code === 'P2021') {
+          console.log('⚠️ Datenbank-Tabellen existieren nicht. Führe Migration aus...');
+          // This will be handled by the start script on Railway
+          console.log('Bitte führe "npm run db:push" aus, um die Tabellen zu erstellen.');
+        } else {
+          throw error;
+        }
       }
+    } else {
+      console.log('⚠️ Lokale Entwicklung - Datenbank-Prüfung übersprungen');
     }
   } catch (error) {
     console.error('❌ Datenbank-Verbindungsfehler:', error);
   }
+  
+  // Start health check server
+  healthCheck.start();
 });
 
 // Register commands

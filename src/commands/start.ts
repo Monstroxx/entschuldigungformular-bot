@@ -20,7 +20,7 @@ export async function startCommand(interaction: ChatInputCommandInteraction) {
   if (!user || !user.firstName || !user.lastName) {
     await interaction.reply({
       content: '❌ Bitte führe zuerst `/setup` aus, um deine Daten zu konfigurieren!',
-      ephemeral: true
+      flags: 64 // EPHEMERAL flag
     });
     return;
   }
@@ -91,12 +91,12 @@ export async function startCommand(interaction: ChatInputCommandInteraction) {
     if (error.code === 'P2021') {
       await interaction.reply({
         content: '❌ Datenbank-Tabellen existieren noch nicht. Bitte warte einen Moment und versuche es erneut.',
-        ephemeral: true
+        flags: 64
       });
     } else {
       await interaction.reply({
         content: '❌ Ein Fehler ist aufgetreten. Bitte versuche es erneut.',
-        ephemeral: true
+        flags: 64
       });
     }
   }
