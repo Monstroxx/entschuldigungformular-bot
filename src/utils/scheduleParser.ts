@@ -25,16 +25,8 @@ export function parseScheduleFormat(csvContent: string): ScheduleEntry[] {
       for (let i = 0; i < subjects.length; i++) {
         const subject = subjects[i];
         if (i < weekdays.length && subject) {
-          // Extract hour number from format (e.g. "1std" -> "1. Stunde")
-          const hourMatch = subjects[0].replace('std', '') || lineNum.toString();
-          let hourName: string;
-          
-          try {
-            const hourNum = parseInt(hourMatch);
-            hourName = `${hourNum}. Stunde`;
-          } catch {
-            hourName = `${hourMatch}. Stunde`;
-          }
+          // Use line number as hour (line 1 = 1. Stunde, line 2 = 2. Stunde, etc.)
+          const hourName = `${lineNum}. Stunde`;
 
           scheduleData.push({
             hour: hourName,
